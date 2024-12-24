@@ -5,14 +5,13 @@ import "core:strings"
 import rl "vendor:raylib"
 
 
-Turn :: enum {
+Player :: enum {
     WHITE,
     BLACK
 }
 
 Game :: struct {
     board: Board,
-    turn: Turn
 }
 
 @(private = "file")
@@ -29,7 +28,6 @@ main :: proc() {
     // @todo: add piece
 
     game := Game {
-        turn = Turn.WHITE,
         board = board
     }
     add_pieces(&game)

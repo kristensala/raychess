@@ -24,7 +24,7 @@ Coordinate :: struct {
 
 Piece :: struct {
     name: string,
-    is_white: bool,
+    player: Player,
     position : Square,
     rect: rl.Rectangle,
     texture: rl.Texture2D
@@ -101,6 +101,7 @@ add_pieces :: proc(game: ^Game) {
     wq_piece := Piece{
         name = "White queen",
         texture = wq_texture,
+        player = Player.WHITE,
         rect = wq_rect,
         position = game.board.squares[0][0]
     }
