@@ -125,6 +125,7 @@ draw_board :: proc(board: ^Board) {
                 rl.DrawRectangleRec(square.rect, rl.Fade(rl.GRAY, .5))
             }
 
+            // show valid moves
             for highlighted_square in highlighted_squares {
                 if highlighted_square.row == square.row && highlighted_square.col == square.col {
                     rl.DrawRectangleRec(square.rect, rl.Fade(rl.ORANGE, .5))
