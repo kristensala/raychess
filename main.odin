@@ -91,7 +91,6 @@ update :: proc(game: ^Game) {
                 clear(&highlighted_squares)
             } else {
                 test_piece.is_active = true
-                // @todo: highlight valid moves
                 highlighted_squares = valid_moves(game, test_piece)
             }
 
@@ -138,8 +137,16 @@ draw_board :: proc(board: ^Board) {
 
 @(private = "file")
 draw_current_active_square_coordinates :: proc(board: ^Board) {
+    rows := ROWS
+    columns := COLUMNS
+
     coord := board.squares[hovered_square_vec.x][hovered_square_vec.y]
-    coordinate_string := fmt.aprintf("{0}{1}", coord.row, coord.col)
+    coordinate_string := fmt.aprintf("{0}{1} (idx: {2}{3})", 
+        rows[coord.row],
+        columns[coord.col],
+        coord.row,
+        coord.col
+    )
     defer delete(coordinate_string)
 
     coord_cstring := strings.clone_to_cstring(coordinate_string)

@@ -18,11 +18,6 @@ Square :: struct {
     rect: rl.Rectangle
 }
 
-Coordinate :: struct {
-    row_nr: int,
-    col_nr: int
-}
-
 Piece_type :: enum {
     KING,
     QUEEN,
@@ -33,10 +28,10 @@ Piece_type :: enum {
 }
 
 Piece :: struct {
-    name: string,
+    number: int, // id for pieces which have duplicates (pawns, khights, pishops, rooks)
     player: Player,
     rect: rl.Rectangle,
-    position_on_board: [2]int,
+    position_on_board: [2]int, // {row, col}
     texture: rl.Texture2D,
     type: Piece_type,
     is_active: bool
@@ -154,8 +149,6 @@ valid_moves :: proc(game: ^Game, piece: ^Piece) -> [dynamic]Square {
     moves: [dynamic]Square
     board := game.board
 
-    piece_coords := piece.position_on_board
-
     if piece.type == .QUEEN {
         add_valid_moves_east(&board, piece, &moves)
         add_valid_moves_west(&board, piece, &moves)
@@ -167,6 +160,7 @@ valid_moves :: proc(game: ^Game, piece: ^Piece) -> [dynamic]Square {
         // @todo: south west
 
         // @todo: south east
+
     }
     return moves
 }
