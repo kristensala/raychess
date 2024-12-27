@@ -157,7 +157,7 @@ valid_moves :: proc(game: ^Game, piece: ^Piece) -> [dynamic]Square {
 
     if piece.type == .QUEEN {
         // east from the piece
-        for i := piece_coords.y + 1; i < 8; i += 1 {
+        for i := piece_coords.y + 1; i < len(COLUMNS); i += 1 {
             s := board.squares[piece_coords.x][i]
 
             has_piece, found_piece := square_has_piece(&board, &s)
@@ -178,7 +178,6 @@ valid_moves :: proc(game: ^Game, piece: ^Piece) -> [dynamic]Square {
             s := board.squares[piece_coords.x][i]
 
             has_piece, found_piece := square_has_piece(&board, &s)
-            fmt.println(has_piece)
             if has_piece {
                 if piece.player != found_piece.player {
                     append(&moves, s)
@@ -188,6 +187,84 @@ valid_moves :: proc(game: ^Game, piece: ^Piece) -> [dynamic]Square {
             } else {
                 append(&moves, s)
             }
+        }
+
+        // north from piece
+        for i := piece_coords.x + 1; i < len(ROWS); i += 1 {
+            s := board.squares[i][piece_coords.y]
+
+            has_piece, found_piece := square_has_piece(&board, &s)
+            if has_piece {
+                if piece.player != found_piece.player {
+                    append(&moves, s)
+                    break
+                }
+                break;
+            } else {
+                append(&moves, s)
+            }
+        }
+
+        // south from piece
+        for i := piece_coords.x - 1; i >= 0; i -= 1 {
+            s := board.squares[i][piece_coords.y]
+
+            has_piece, found_piece := square_has_piece(&board, &s)
+            if has_piece {
+                if piece.player != found_piece.player {
+                    append(&moves, s)
+                    break
+                }
+                break;
+            } else {
+                append(&moves, s)
+            }
+        }
+
+        // north east
+        col_idx := piece_coords.y + 1
+        for i := piece_coords.x + 1; i < len(ROWS); i += 1 {
+            if col_idx == len(COLUMNS) {
+                continue
+            }
+
+            s := board.squares[i][col_idx]
+
+            has_piece, found_piece := square_has_piece(&board, &s)
+            if has_piece {
+                if piece.player != found_piece.player {
+                    append(&moves, s)
+                    break
+                }
+                break;
+            } else {
+                append(&moves, s)
+            }
+
+            col_idx += 1
+        }
+
+        // north west
+        col_idx = piece_coords.y - 1
+        for i := piece_coords.x + 1; i < len(ROWS); i += 1 {
+            if col_idx < 0 {
+                continue
+            }
+
+            s := board.squares[i][col_idx]
+
+            has_piece, found_piece := square_has_piece(&board, &s)
+            if has_piece {
+                if piece.player != found_piece.player {
+                    append(&moves, s)
+                    break
+                }
+                break;
+            } else {
+                append(&moves, s)
+            }
+
+            col_idx -= 1
         }
     }
     return moves
