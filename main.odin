@@ -25,7 +25,6 @@ main :: proc() {
         position = {0, 700},
     }
     create_squares(&board)
-    // @todo: add piece
 
     game := Game {
         board = board
@@ -62,6 +61,7 @@ main :: proc() {
 @(private = "file")
 update :: proc(game: ^Game) {
     mouse_pos := rl.GetMousePosition()
+    test_piece := &game.board.pieces[0]
 
     // Check which square the mouse is hovering
     for row, row_idx in game.board.squares {
@@ -70,27 +70,37 @@ update :: proc(game: ^Game) {
             if is_collision {
                 hovered_square_vec = {row_idx, square_idx}
             }
+
+            if rl.CheckCollisionPointRec(mouse_pos, square.rect) && test_piece.is_active && !rl.CheckCollisionPointRec(mouse_pos, test_piece.rect) {
+                if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
+                    square_to_move_to := game.board.squares[row_idx][square_idx]
+                    // @todo: get valid moves based on the piece
+
+                    test_piece.rect.x = square_to_move_to.rect.x
+                    test_piece.rect.y = square_to_move_to.rect.y
+                }
+            }
         }
     }
 
-    // @todo: drag and drop a chess piece
-    // while mouse down, center the piece so
-    // that the mouse would be in the center of the piece automagically
-    test_piece := &game.board.pieces[0]
     if rl.CheckCollisionPointRec(mouse_pos, test_piece.rect) {
-        if rl.IsMouseButtonDown(rl.MouseButton.LEFT) {
-            test_piece.rect.x = mouse_pos.x - (SQUARE_SIZE / 2)
-            test_piece.rect.y = mouse_pos.y - (SQUARE_SIZE / 2)
+        if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
+            if test_piece.is_active {
+                test_piece.is_active = false
+            } else {
+                test_piece.is_active = true
+            }
 
+            /*test_piece.rect.x = mouse_pos.x - (SQUARE_SIZE / 2)
+            test_piece.rect.y = mouse_pos.y - (SQUARE_SIZE / 2)*/
         }
 
         // note: snap the piece into the hovered square
-        if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) {
+        /*if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) {
             hovered_square := game.board.squares[hovered_square_vec.x][hovered_square_vec.y]
-            fmt.println("released: ", hovered_square)
             test_piece.rect.x = hovered_square.rect.x
             test_piece.rect.y = hovered_square.rect.y
-        }
+        }*/
     }
 }
 

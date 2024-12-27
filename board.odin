@@ -22,12 +22,22 @@ Coordinate :: struct {
     column: string
 }
 
+Piece_type :: enum {
+    KING,
+    QUEEN,
+    KNIGHT,
+    PAWN,
+    PISHOP,
+    ROOK
+}
+
 Piece :: struct {
     name: string,
     player: Player,
-    position : Square,
     rect: rl.Rectangle,
-    texture: rl.Texture2D
+    texture: rl.Texture2D,
+    type: Piece_type,
+    is_active: bool
 }
 
 COLUMNS :: [8]string{"a", "b", "c", "d", "e", "f", "g", "h"}
@@ -82,11 +92,11 @@ create_squares :: proc(board: ^Board) {
 
         square_start_x = board.position.x
         square_start_y -= SQUARE_SIZE
-
     }
 }
 
 add_pieces :: proc(game: ^Game) {
+    /* WHITE QUEEN */
     wq_texture := rl.LoadTexture("./assets/wq.png")
     wq_texture.height = SQUARE_SIZE
     wq_texture.width = SQUARE_SIZE
@@ -99,12 +109,24 @@ add_pieces :: proc(game: ^Game) {
     }
 
     wq_piece := Piece{
-        name = "White queen",
         texture = wq_texture,
         player = Player.WHITE,
+        type = Piece_type.QUEEN,
         rect = wq_rect,
-        position = game.board.squares[0][0]
+        is_active = false
     }
     append(&game.board.pieces, wq_piece)
+
+    /* WHITE ROOK 1 */
+
+    /* WHITE ROOK 2 */
+
 }
+
+valid_moves :: proc(game: ^Game, piece: ^Piece) -> [dynamic]Square {
+    test := game.board.squares[0]
+    return test
+}
+
+
 
