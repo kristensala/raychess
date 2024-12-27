@@ -17,6 +17,9 @@ Game :: struct {
 @(private = "file")
 hovered_square_vec: [2]int
 
+@(private = "file")
+highlighted_squares: [dynamic]Square
+
 main :: proc() {
     rl.InitWindow(1000, 800, "RayChess")
     rl.SetWindowMonitor(1)
@@ -74,10 +77,8 @@ update :: proc(game: ^Game) {
             if rl.CheckCollisionPointRec(mouse_pos, square.rect) && test_piece.is_active && !rl.CheckCollisionPointRec(mouse_pos, test_piece.rect) {
                 if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
                     square_to_move_to := game.board.squares[row_idx][square_idx]
-                    // @todo: get valid moves based on the piece
-
-                    test_piece.rect.x = square_to_move_to.rect.x
-                    test_piece.rect.y = square_to_move_to.rect.y
+                    // @todo: get valid moves based on the Piece
+                    move_piece(game, test_piece, &square_to_move_to)
                 }
             }
         }
@@ -87,10 +88,14 @@ update :: proc(game: ^Game) {
         if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
             if test_piece.is_active {
                 test_piece.is_active = false
+                clear(&highlighted_squares)
             } else {
                 test_piece.is_active = true
+                // @todo: highlight valid moves
+                highlighted_squares = valid_moves(game, test_piece)
             }
 
+            /* note(kristen): drag and drop logic */
             /*test_piece.rect.x = mouse_pos.x - (SQUARE_SIZE / 2)
             test_piece.rect.y = mouse_pos.y - (SQUARE_SIZE / 2)*/
         }
@@ -108,7 +113,6 @@ update :: proc(game: ^Game) {
 draw :: proc(board: ^Board) {
     draw_board(board)
     draw_current_active_square_coordinates(board)
-
 }
 
 @(private = "file")
@@ -118,7 +122,14 @@ draw_board :: proc(board: ^Board) {
             rl.DrawRectangleRec(square.rect, square.color)
 
             if hovered_square_vec.x == row_idx && hovered_square_vec.y == square_idx {
-                rl.DrawRectangleRec(square.rect, rl.GREEN)
+                rl.DrawRectangleRec(square.rect, rl.Fade(rl.GRAY, .5))
+            }
+
+            for highlighted_square in highlighted_squares {
+                if highlighted_square.row == square.row && highlighted_square.col == square.col {
+                    rl.DrawRectangleRec(square.rect, rl.Fade(rl.ORANGE, .5))
+                }
+
             }
         }
     }
@@ -126,8 +137,8 @@ draw_board :: proc(board: ^Board) {
 
 @(private = "file")
 draw_current_active_square_coordinates :: proc(board: ^Board) {
-    coord := board.squares[hovered_square_vec.x][hovered_square_vec.y].coordinate
-    coordinate_string := fmt.aprintf("{0}{1}", coord.column, coord.row_nr + 1)
+    coord := board.squares[hovered_square_vec.x][hovered_square_vec.y]
+    coordinate_string := fmt.aprintf("{0}{1}", coord.row, coord.col)
     defer delete(coordinate_string)
 
     coord_cstring := strings.clone_to_cstring(coordinate_string)
