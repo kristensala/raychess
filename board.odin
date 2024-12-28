@@ -156,10 +156,8 @@ valid_moves :: proc(game: ^Game, piece: ^Piece) -> [dynamic]Square {
         add_valid_moves_south(&board, piece, &moves)
         add_valid_moves_north_east(&board, piece, &moves)
         add_valid_moves_north_west(&board, piece, &moves)
-
-        // @todo: south west
-
-        // @todo: south east
+        add_valid_moves_south_east(&board, piece, &moves)
+        add_valid_moves_south_west(&board, piece, &moves)
 
     }
     return moves
@@ -250,7 +248,7 @@ add_valid_moves_north_west :: proc(board: ^Board, piece: ^Piece, moves: ^[dynami
     col_idx := piece.position_on_board.y - 1
     for i := piece.position_on_board.x + 1; i < len(ROWS); i += 1 {
         if col_idx < 0 {
-            continue
+            break
         }
 
         s := board.squares[i][col_idx]
@@ -267,8 +265,8 @@ add_valid_moves_north_west :: proc(board: ^Board, piece: ^Piece, moves: ^[dynami
 add_valid_moves_north_east :: proc(board: ^Board, piece: ^Piece, moves: ^[dynamic]Square) {
     col_idx := piece.position_on_board.y + 1
     for i := piece.position_on_board.x + 1; i < len(ROWS); i += 1 {
-        if col_idx == len(COLUMNS) {
-            continue
+        if col_idx >= len(COLUMNS) {
+            break
         }
 
         s := board.squares[i][col_idx]
@@ -279,6 +277,44 @@ add_valid_moves_north_east :: proc(board: ^Board, piece: ^Piece, moves: ^[dynami
         }
 
         col_idx += 1
+    }
+}
+
+@(private = "file")
+add_valid_moves_south_east :: proc(board: ^Board, piece: ^Piece, moves: ^[dynamic]Square) {
+    col_idx := piece.position_on_board.y + 1
+    for i := piece.position_on_board.x - 1; i >= 0; i -= 1 {
+        if col_idx >= len(COLUMNS) {
+            break
+        }
+
+        s := board.squares[i][col_idx]
+
+        should_break := append_move(board, piece, &s, moves)
+        if should_break {
+            break
+        }
+
+        col_idx += 1
+    }
+}
+
+@(private = "file")
+add_valid_moves_south_west :: proc(board: ^Board, piece: ^Piece, moves: ^[dynamic]Square) {
+    col_idx := piece.position_on_board.y - 1
+    for i := piece.position_on_board.x - 1; i >= 0; i -= 1 {
+        if col_idx < 0 {
+            break
+        }
+
+        s := board.squares[i][col_idx]
+
+        should_break := append_move(board, piece, &s, moves)
+        if should_break {
+            break
+        }
+
+        col_idx -= 1
     }
 }
 
