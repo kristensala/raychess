@@ -10,8 +10,13 @@ Player :: enum {
     BLACK
 }
 
+Game_mode :: enum {
+    FREE
+}
+
 Game :: struct {
     board: Board,
+    mode: Game_mode
 }
 
 @(private = "file")
@@ -19,6 +24,9 @@ hovered_square_vec: [2]int
 
 @(private = "file")
 highlighted_squares: [dynamic]Square
+
+is_reset_pressed: bool
+selected_piece: ^Piece
 
 main :: proc() {
     rl.InitWindow(1000, 800, "RayChess")
@@ -43,13 +51,15 @@ main :: proc() {
         draw(&board)
 
         // note: draw a piece test
-        rl.DrawRectangleRec(game.board.pieces[0].rect, rl.Fade(rl.WHITE, 0))
-        rl.DrawTexture(
-            game.board.pieces[0].texture,
-            i32(game.board.pieces[0].rect.x),
-            i32(game.board.pieces[0].rect.y),
-            rl.WHITE
-        )
+        for p in game.board.pieces {
+            rl.DrawRectangleRec(p.rect, rl.Fade(rl.WHITE, 0))
+            rl.DrawTexture(
+                p.texture,
+                i32(p.rect.x),
+                i32(p.rect.y),
+                rl.WHITE
+            )
+        }
 
         rl.EndDrawing()
     }
@@ -64,7 +74,7 @@ main :: proc() {
 @(private = "file")
 update :: proc(game: ^Game) {
     mouse_pos := rl.GetMousePosition()
-    test_piece := &game.board.pieces[0]
+    pieces_on_board := &game.board.pieces
 
     // Check which square the mouse is hovering
     for row, row_idx in game.board.squares {
@@ -74,37 +84,39 @@ update :: proc(game: ^Game) {
                 hovered_square_vec = {row_idx, square_idx}
             }
 
-            if rl.CheckCollisionPointRec(mouse_pos, square.rect) && test_piece.is_active && !rl.CheckCollisionPointRec(mouse_pos, test_piece.rect) {
-                if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
-                    square_to_move_to := game.board.squares[row_idx][square_idx]
-                    // @todo: get valid moves based on the Piece
-                    move_piece(game, test_piece, &square_to_move_to)
+            if selected_piece != nil {
+                for &piece in pieces_on_board {
+                    if rl.CheckCollisionPointRec(mouse_pos, square.rect) && 
+                       piece.number == selected_piece.number && 
+                       !rl.CheckCollisionPointRec(mouse_pos, piece.rect)
+                    {
+                        if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
+                            square_to_move_to := game.board.squares[row_idx][square_idx]
+                            move_piece(game, &piece, &square_to_move_to)
+                        }
+                    }
                 }
             }
         }
     }
 
-    if rl.CheckCollisionPointRec(mouse_pos, test_piece.rect) {
-        if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
-            if test_piece.is_active {
-                test_piece.is_active = false
-                clear(&highlighted_squares)
-            } else {
-                test_piece.is_active = true
-                highlighted_squares = valid_moves(game, test_piece)
+    for &piece in pieces_on_board {
+        if rl.CheckCollisionPointRec(mouse_pos, piece.rect) {
+            if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
+                if selected_piece != nil && piece.number == selected_piece.number {
+                    selected_piece = nil
+                    clear(&highlighted_squares)
+                } else {
+                    selected_piece = &piece
+                    highlighted_squares = valid_moves(game, &piece)
+                }
             }
-
-            /* note(kristen): drag and drop logic */
-            /*test_piece.rect.x = mouse_pos.x - (SQUARE_SIZE / 2)
-            test_piece.rect.y = mouse_pos.y - (SQUARE_SIZE / 2)*/
         }
+    }
 
-        // note: snap the piece into the hovered square
-        /*if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) {
-            hovered_square := game.board.squares[hovered_square_vec.x][hovered_square_vec.y]
-            test_piece.rect.x = hovered_square.rect.x
-            test_piece.rect.y = hovered_square.rect.y
-        }*/
+    if is_reset_pressed {
+        selected_piece = nil
+        reset_game(game)
     }
 }
 
@@ -112,6 +124,8 @@ update :: proc(game: ^Game) {
 draw :: proc(board: ^Board) {
     draw_board(board)
     draw_current_active_square_coordinates(board)
+
+    is_reset_pressed = rl.GuiButton(rl.Rectangle{900, 10, 50, 20}, "Reset")
 }
 
 @(private = "file")

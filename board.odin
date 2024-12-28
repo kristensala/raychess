@@ -1,6 +1,8 @@
 package main
 
 import "core:fmt"
+import "core:crypto"
+import "core:encoding/uuid"
 import rl "vendor:raylib"
 
 Board :: struct {
@@ -28,13 +30,12 @@ Piece_type :: enum {
 }
 
 Piece :: struct {
-    number: int, // id for pieces which have duplicates (pawns, khights, pishops, rooks)
+    number: uuid.Identifier,
     player: Player,
     rect: rl.Rectangle,
     position_on_board: [2]int, // {row, col}
     texture: rl.Texture2D,
-    type: Piece_type,
-    is_active: bool
+    type: Piece_type
 }
 
 COLUMNS :: [8]string{"a", "b", "c", "d", "e", "f", "g", "h"}
@@ -92,10 +93,19 @@ create_squares :: proc(board: ^Board) {
 }
 
 @(private)
+reset_game:: proc(game: ^Game) {
+    clear(&game.board.pieces)
+    add_pieces(game)
+}
+
+@(private)
 move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: ^Square) {
     if !is_valid_move(game, piece_to_move, destination) {
         return
     }
+
+    // @todo: is it a take?
+    // then remove the taken piece from board
 
     piece_to_move.rect.x = destination.rect.x
     piece_to_move.rect.y = destination.rect.y
@@ -104,6 +114,7 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: ^Square) {
 
 @(private)
 add_pieces :: proc(game: ^Game) {
+
     /* WHITE QUEEN */
     wq_texture := rl.LoadTexture("./assets/wq.png")
     wq_texture.height = SQUARE_SIZE
@@ -116,17 +127,38 @@ add_pieces :: proc(game: ^Game) {
         width = SQUARE_SIZE
     }
 
+    context.random_generator = crypto.random_generator()
     wq_piece := Piece{
+        number = uuid.generate_v7(),
         texture = wq_texture,
         player = Player.WHITE,
         type = Piece_type.QUEEN,
         rect = wq_rect,
-        is_active = false,
         position_on_board = {1,1}
     }
     append(&game.board.pieces, wq_piece)
 
     /* WHITE ROOK 1 */
+    wr_texture := rl.LoadTexture("./assets/wr.png")
+    wr_texture.height = SQUARE_SIZE
+    wr_texture.width = SQUARE_SIZE
+
+    wr_rect := rl.Rectangle{
+        x = game.board.squares[0][0].rect.x,
+        y = game.board.squares[0][0].rect.y,
+        height = SQUARE_SIZE,
+        width = SQUARE_SIZE
+    }
+
+    wr_piece := Piece{
+        number = uuid.generate_v7(),
+        texture = wr_texture,
+        player = Player.WHITE,
+        type = Piece_type.ROOK,
+        rect = wr_rect,
+        position_on_board = {0,0}
+    }
+    append(&game.board.pieces, wr_piece)
 
     /* WHITE ROOK 2 */
 
@@ -159,8 +191,30 @@ valid_moves :: proc(game: ^Game, piece: ^Piece) -> [dynamic]Square {
         add_valid_moves_south_east(&board, piece, &moves)
         add_valid_moves_south_west(&board, piece, &moves)
 
+        return moves
     }
+
+    if piece.type == .ROOK {
+        add_valid_moves_east(&board, piece, &moves)
+        add_valid_moves_west(&board, piece, &moves)
+        add_valid_moves_north(&board, piece, &moves)
+        add_valid_moves_south(&board, piece, &moves)
+        return moves
+    }
+
+    if piece.type == .PISHOP {
+        add_valid_moves_north_east(&board, piece, &moves)
+        add_valid_moves_north_west(&board, piece, &moves)
+        add_valid_moves_south_east(&board, piece, &moves)
+        add_valid_moves_south_west(&board, piece, &moves)
+        return moves
+    }
+
     return moves
+}
+
+@(private)
+take_piece :: proc() {
 }
 
 /*
@@ -317,6 +371,4 @@ add_valid_moves_south_west :: proc(board: ^Board, piece: ^Piece, moves: ^[dynami
         col_idx -= 1
     }
 }
-
-
 
