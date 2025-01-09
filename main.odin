@@ -22,10 +22,15 @@ Game :: struct {
 @(private = "file") highlighted_squares: [dynamic]Square
 @(private = "file") is_reset_pressed: bool
 @(private = "file") selected_piece: ^Piece
+@(private = "file") move_sound: rl.Sound
 
 main :: proc() {
     rl.InitWindow(1000, 800, "RayChess")
     rl.SetWindowMonitor(1)
+
+    rl.InitAudioDevice()
+    move_sound = rl.LoadSound("./assets/move-self.mp3")
+    rl.SetTargetFPS(60)
 
     board := Board {
         position = {0, 700},
@@ -62,6 +67,7 @@ main :: proc() {
         rl.UnloadTexture(piece.texture)
     }
 
+    rl.UnloadSound(move_sound)
     rl.CloseWindow()
 }
 
@@ -69,6 +75,32 @@ main :: proc() {
 update :: proc(game: ^Game) {
     mouse_pos := rl.GetMousePosition()
     pieces_on_board := &game.board.pieces
+    if (mouse_pos.x >= 810 ||
+        mouse_pos.y < 0 ||
+        mouse_pos.y >= 810 ||
+        mouse_pos.x < 0) && selected_piece != nil
+    {
+        starting_pos := selected_piece.position_on_board
+        starting_square := game.board.squares[starting_pos.x][starting_pos.y]
+        selected_piece.rect = starting_square.rect
+        selected_piece = nil
+    }
+
+    // highlight valid squares for the selected piece
+    for &piece in pieces_on_board {
+        if rl.CheckCollisionPointRec(mouse_pos, piece.rect) {
+            if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
+                if selected_piece != nil && piece.number == selected_piece.number {
+                    fmt.println("seleted nil")
+                    selected_piece = nil
+                    //clear(&highlighted_squares)
+                } else {
+                    selected_piece = &piece
+                    //highlighted_squares = valid_moves(game, &piece)
+                }
+            }
+        }
+    }
 
     // Check which square the mouse is hovering
     for row, row_idx in game.board.squares {
@@ -78,16 +110,21 @@ update :: proc(game: ^Game) {
                 hovered_square_vec = {row_idx, square_idx}
             }
 
+            // @todo: fix if dragging off the board
             if selected_piece != nil {
                 for &piece in pieces_on_board {
-                    if rl.CheckCollisionPointRec(mouse_pos, piece.rect) && selected_piece == &piece {
+                    if rl.CheckCollisionPointRec(mouse_pos, square.rect) && selected_piece == &piece {
                         if rl.IsMouseButtonDown(rl.MouseButton.LEFT) {
-                            piece.rect.x = mouse_pos.x - (SQUARE_SIZE / 2)
-                            piece.rect.y = mouse_pos.y - (SQUARE_SIZE / 2)
+                            piece.rect.x = mouse_pos.x - 50
+                            piece.rect.y = mouse_pos.y - 50
                         }
                         if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) {
                             square_to_move_to := game.board.squares[hovered_square_vec.x][hovered_square_vec.y]
                             moved := move_piece(game, &piece, &square_to_move_to)
+                            if moved {
+                                rl.PlaySound(move_sound)
+                            }
+
                             if !moved {
                                 // snap back
                                 starting_pos := piece.position_on_board
@@ -97,21 +134,6 @@ update :: proc(game: ^Game) {
                             selected_piece = nil
                         }
                     }
-                }
-            }
-        }
-    }
-
-    // highlight valid squares for the selected piece
-    for &piece in pieces_on_board {
-        if rl.CheckCollisionPointRec(mouse_pos, piece.rect) {
-            if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
-                if selected_piece != nil && piece.number == selected_piece.number {
-                    selected_piece = nil
-                    //clear(&highlighted_squares)
-                } else {
-                    selected_piece = &piece
-                    //highlighted_squares = valid_moves(game, &piece)
                 }
             }
         }
@@ -135,17 +157,17 @@ draw :: proc(board: ^Board) {
 draw_board :: proc(board: ^Board) {
     for row, row_idx in board.squares {
         for square, square_idx in row {
+            // @todo: draw coordinates on the board
             rl.DrawRectangleRec(square.rect, square.color)
 
             if hovered_square_vec.x == row_idx && hovered_square_vec.y == square_idx {
-                rl.DrawRectangleRec(square.rect, rl.Fade(rl.GRAY, .5))
+                rl.DrawRectangleRec(square.rect, rl.Fade(rl.PURPLE, .5))
             }
 
             for highlighted_square in highlighted_squares {
                 if highlighted_square.row == square.row && highlighted_square.col == square.col {
                     rl.DrawRectangleRec(square.rect, rl.Fade(rl.ORANGE, .5))
                 }
-
             }
         }
     }

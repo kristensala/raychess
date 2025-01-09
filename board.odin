@@ -135,6 +135,7 @@ add_pieces :: proc(game: ^Game) {
     }
 
     context.random_generator = crypto.random_generator()
+
     wq_piece := Piece{
         number = uuid.generate_v7(),
         texture = wq_texture,
@@ -168,7 +169,22 @@ add_pieces :: proc(game: ^Game) {
     append(&game.board.pieces, wr_piece)
 
     /* WHITE ROOK 2 */
+    wrr_rect := rl.Rectangle{
+        x = game.board.squares[0][7].rect.x,
+        y = game.board.squares[0][7].rect.y,
+        height = SQUARE_SIZE,
+        width = SQUARE_SIZE
+    }
 
+    wrr_piece := Piece{
+        number = uuid.generate_v7(),
+        texture = wr_texture,
+        player = Player.WHITE,
+        type = Piece_type.ROOK,
+        rect = wrr_rect,
+        position_on_board = {0,7}
+    }
+    append(&game.board.pieces, wrr_piece)
 }
 
 is_valid_move :: proc(game: ^Game, piece: ^Piece, move_to: ^Square) -> bool {
