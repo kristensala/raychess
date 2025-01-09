@@ -20,12 +20,12 @@ Square :: struct {
     rect: rl.Rectangle
 }
 
-Piece_type :: enum {
+Piece_Type :: enum {
     KING,
     QUEEN,
     KNIGHT,
     PAWN,
-    PISHOP,
+    BISHOP,
     ROOK
 }
 
@@ -35,7 +35,7 @@ Piece :: struct {
     rect: rl.Rectangle,
     position_on_board: [2]int, // {row, col}
     texture: rl.Texture2D,
-    type: Piece_type
+    type: Piece_Type
 }
 
 COLUMNS :: [8]string{"a", "b", "c", "d", "e", "f", "g", "h"}
@@ -140,7 +140,7 @@ add_pieces :: proc(game: ^Game) {
         number = uuid.generate_v7(),
         texture = wq_texture,
         player = Player.WHITE,
-        type = Piece_type.QUEEN,
+        type = Piece_Type.QUEEN,
         rect = wq_rect,
         position_on_board = {1,1}
     }
@@ -162,7 +162,7 @@ add_pieces :: proc(game: ^Game) {
         number = uuid.generate_v7(),
         texture = wr_texture,
         player = Player.WHITE,
-        type = Piece_type.ROOK,
+        type = Piece_Type.ROOK,
         rect = wr_rect,
         position_on_board = {0,0}
     }
@@ -180,7 +180,7 @@ add_pieces :: proc(game: ^Game) {
         number = uuid.generate_v7(),
         texture = wr_texture,
         player = Player.WHITE,
-        type = Piece_type.ROOK,
+        type = Piece_Type.ROOK,
         rect = wrr_rect,
         position_on_board = {0,7}
     }
@@ -224,7 +224,7 @@ valid_moves :: proc(game: ^Game, piece: ^Piece) -> [dynamic]Square {
         return moves
     }
 
-    if piece.type == .PISHOP {
+    if piece.type == .BISHOP {
         add_valid_moves_north_east(&board, piece, &moves)
         add_valid_moves_north_west(&board, piece, &moves)
         add_valid_moves_south_east(&board, piece, &moves)

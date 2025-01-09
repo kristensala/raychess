@@ -9,13 +9,13 @@ Player :: enum {
     BLACK
 }
 
-Game_mode :: enum {
+Game_Mode :: enum {
     FREE
 }
 
 Game :: struct {
     board: Board,
-    mode: Game_mode
+    mode: Game_Mode
 }
 
 @(private = "file") hovered_square_vec: [2]int
@@ -120,7 +120,6 @@ update :: proc(game: ^Game) {
                 hovered_square_vec = {row_idx, square_idx}
             }
 
-            // @todo: fix if dragging off the board
             if selected_piece != nil {
                 for &piece in pieces_on_board {
                     if rl.CheckCollisionPointRec(mouse_pos, square.rect) && selected_piece == &piece {
@@ -207,6 +206,7 @@ draw_current_active_square_coordinates :: proc(board: ^Board) {
     rl.DrawText(coord_cstring, 0 ,0 , 20, rl.BLACK)
 }
 
+// @todo: remove later
 click_and_move :: proc() {
     // @todo: drag the piece
     // click and move the piece
