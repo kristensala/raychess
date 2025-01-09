@@ -105,7 +105,7 @@ update :: proc(game: ^Game) {
                 } else {
                     selected_piece = &piece
                     if SHOW_VALID_SQUARES {
-                        highlighted_squares = valid_moves(game, &piece)
+                        highlighted_squares = valid_moves(game, piece)
                     }
                 }
             }
@@ -129,7 +129,7 @@ update :: proc(game: ^Game) {
                         }
                         if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) {
                             square_to_move_to := game.board.squares[hovered_square_vec.x][hovered_square_vec.y]
-                            moved := move_piece(game, &piece, &square_to_move_to)
+                            moved := move_piece(game, &piece, square_to_move_to)
                             if moved {
                                 rl.PlaySound(move_sound)
                             }

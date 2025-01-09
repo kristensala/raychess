@@ -50,7 +50,6 @@ create_squares :: proc(board: ^Board) {
 
     for i := 0; i < len(ROWS); i += 1  {
         row_array: [dynamic]Square
-
         for column, col_idx in COLUMNS {
             if i % 2 == 0 {
                 if col_idx % 2 == 0 {
@@ -90,6 +89,7 @@ create_squares :: proc(board: ^Board) {
         square_start_x = board.position.x
         square_start_y -= SQUARE_SIZE
     }
+
 }
 
 @(private)
@@ -99,14 +99,14 @@ reset_game:: proc(game: ^Game) {
 }
 
 @(private)
-move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: ^Square) -> bool {
-    if !is_valid_move(game, piece_to_move, destination) {
+move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> bool {
+    if !is_valid_move(game, piece_to_move^, destination) {
         return false;
     }
 
     // @note: detect a take
     // @todo: test
-    has_piece, piece, piece_index := square_has_piece(&game.board, destination)
+    has_piece, piece, piece_index := square_has_piece(game.board, destination)
     if has_piece && piece.player != piece_to_move.player {
         fmt.println("removing piece from board: ", piece)
 
@@ -187,7 +187,7 @@ add_pieces :: proc(game: ^Game) {
     append(&game.board.pieces, wrr_piece)
 }
 
-is_valid_move :: proc(game: ^Game, piece: ^Piece, move_to: ^Square) -> bool {
+is_valid_move :: proc(game: ^Game, piece: Piece, move_to: Square) -> bool {
     moves := valid_moves(game, piece)
     defer delete(moves)
 
@@ -200,35 +200,35 @@ is_valid_move :: proc(game: ^Game, piece: ^Piece, move_to: ^Square) -> bool {
     return false
 }
 
-valid_moves :: proc(game: ^Game, piece: ^Piece) -> [dynamic]Square {
+valid_moves :: proc(game: ^Game, piece: Piece) -> [dynamic]Square {
     moves: [dynamic]Square
     board := game.board
 
     if piece.type == .QUEEN {
-        add_valid_moves_east(&board, piece, &moves)
-        add_valid_moves_west(&board, piece, &moves)
-        add_valid_moves_north(&board, piece, &moves)
-        add_valid_moves_south(&board, piece, &moves)
-        add_valid_moves_north_east(&board, piece, &moves)
-        add_valid_moves_north_west(&board, piece, &moves)
-        add_valid_moves_south_east(&board, piece, &moves)
-        add_valid_moves_south_west(&board, piece, &moves)
+        add_valid_moves_east(board, piece, &moves)
+        add_valid_moves_west(board, piece, &moves)
+        add_valid_moves_north(board, piece, &moves)
+        add_valid_moves_south(board, piece, &moves)
+        add_valid_moves_north_east(board, piece, &moves)
+        add_valid_moves_north_west(board, piece, &moves)
+        add_valid_moves_south_east(board, piece, &moves)
+        add_valid_moves_south_west(board, piece, &moves)
         return moves
     }
 
     if piece.type == .ROOK {
-        add_valid_moves_east(&board, piece, &moves)
-        add_valid_moves_west(&board, piece, &moves)
-        add_valid_moves_north(&board, piece, &moves)
-        add_valid_moves_south(&board, piece, &moves)
+        add_valid_moves_east(board, piece, &moves)
+        add_valid_moves_west(board, piece, &moves)
+        add_valid_moves_north(board, piece, &moves)
+        add_valid_moves_south(board, piece, &moves)
         return moves
     }
 
     if piece.type == .BISHOP {
-        add_valid_moves_north_east(&board, piece, &moves)
-        add_valid_moves_north_west(&board, piece, &moves)
-        add_valid_moves_south_east(&board, piece, &moves)
-        add_valid_moves_south_west(&board, piece, &moves)
+        add_valid_moves_north_east(board, piece, &moves)
+        add_valid_moves_north_west(board, piece, &moves)
+        add_valid_moves_south_east(board, piece, &moves)
+        add_valid_moves_south_west(board, piece, &moves)
         return moves
     }
 
@@ -245,19 +245,19 @@ and if in a loop, we should break out
 */
 @(private = "file")
 append_move :: proc(
-    board: ^Board,
-    piece: ^Piece,
-    square_to_add: ^Square,
+    board: Board,
+    piece: Piece,
+    square_to_add: Square,
     dest: ^[dynamic]Square
 ) -> bool {
     has_piece, found_piece, _ := square_has_piece(board, square_to_add)
     if has_piece {
         if piece.player != found_piece.player {
-            append(dest, square_to_add^)
+            append(dest, square_to_add)
         }
         return true
     } else {
-        append(dest, square_to_add^)
+        append(dest, square_to_add)
     }
 
     return false
@@ -265,8 +265,8 @@ append_move :: proc(
 
 @(private = "file")
 square_has_piece :: proc(
-    board: ^Board,
-    square: ^Square
+    board: Board,
+    square: Square
 ) -> (
     has_piece: bool,
     found_piece: ^Piece,
@@ -283,11 +283,11 @@ square_has_piece :: proc(
 }
 
 @(private = "file")
-add_valid_moves_north :: proc(board: ^Board, piece: ^Piece, moves: ^[dynamic]Square) {
+add_valid_moves_north :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square) {
     for i := piece.position_on_board.x + 1; i < len(ROWS); i += 1 {
         s := board.squares[i][piece.position_on_board.y]
 
-        should_break := append_move(board, piece, &s, moves)
+        should_break := append_move(board, piece, s, moves)
         if should_break {
             break
         }
@@ -295,11 +295,11 @@ add_valid_moves_north :: proc(board: ^Board, piece: ^Piece, moves: ^[dynamic]Squ
 }
 
 @(private = "file")
-add_valid_moves_south :: proc(board: ^Board, piece: ^Piece, moves: ^[dynamic]Square) {
+add_valid_moves_south :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square) {
     for i := piece.position_on_board.x - 1; i >= 0; i -= 1 {
         s := board.squares[i][piece.position_on_board.y]
 
-        should_break := append_move(board, piece, &s, moves)
+        should_break := append_move(board, piece, s, moves)
         if should_break {
             break
         }
@@ -307,11 +307,11 @@ add_valid_moves_south :: proc(board: ^Board, piece: ^Piece, moves: ^[dynamic]Squ
 }
 
 @(private = "file")
-add_valid_moves_east :: proc(board: ^Board, piece: ^Piece, moves: ^[dynamic]Square) {
+add_valid_moves_east :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square) {
     for i := piece.position_on_board.y + 1; i < len(COLUMNS); i += 1 {
         s := board.squares[piece.position_on_board.x][i]
 
-        should_break := append_move(board, piece, &s, moves)
+        should_break := append_move(board, piece, s, moves)
         if should_break {
             break
         }
@@ -319,11 +319,11 @@ add_valid_moves_east :: proc(board: ^Board, piece: ^Piece, moves: ^[dynamic]Squa
 }
 
 @(private = "file")
-add_valid_moves_west :: proc(board: ^Board, piece: ^Piece, moves: ^[dynamic]Square) {
+add_valid_moves_west :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square) {
     for i := piece.position_on_board.y - 1; i >= 0; i -= 1 {
         s := board.squares[piece.position_on_board.x][i]
 
-        should_break := append_move(board, piece, &s, moves)
+        should_break := append_move(board, piece, s, moves)
         if should_break {
             break
         }
@@ -332,7 +332,7 @@ add_valid_moves_west :: proc(board: ^Board, piece: ^Piece, moves: ^[dynamic]Squa
 
 
 @(private = "file")
-add_valid_moves_north_west :: proc(board: ^Board, piece: ^Piece, moves: ^[dynamic]Square) {
+add_valid_moves_north_west :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square) {
     col_idx := piece.position_on_board.y - 1
     for i := piece.position_on_board.x + 1; i < len(ROWS); i += 1 {
         if col_idx < 0 {
@@ -341,7 +341,7 @@ add_valid_moves_north_west :: proc(board: ^Board, piece: ^Piece, moves: ^[dynami
 
         s := board.squares[i][col_idx]
 
-        should_break := append_move(board, piece, &s, moves)
+        should_break := append_move(board, piece, s, moves)
         if should_break {
             break
         }
@@ -350,7 +350,7 @@ add_valid_moves_north_west :: proc(board: ^Board, piece: ^Piece, moves: ^[dynami
 }
 
 @(private = "file")
-add_valid_moves_north_east :: proc(board: ^Board, piece: ^Piece, moves: ^[dynamic]Square) {
+add_valid_moves_north_east :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square) {
     col_idx := piece.position_on_board.y + 1
     for i := piece.position_on_board.x + 1; i < len(ROWS); i += 1 {
         if col_idx >= len(COLUMNS) {
@@ -359,7 +359,7 @@ add_valid_moves_north_east :: proc(board: ^Board, piece: ^Piece, moves: ^[dynami
 
         s := board.squares[i][col_idx]
 
-        should_break := append_move(board, piece, &s, moves)
+        should_break := append_move(board, piece, s, moves)
         if should_break {
             break
         }
@@ -369,7 +369,7 @@ add_valid_moves_north_east :: proc(board: ^Board, piece: ^Piece, moves: ^[dynami
 }
 
 @(private = "file")
-add_valid_moves_south_east :: proc(board: ^Board, piece: ^Piece, moves: ^[dynamic]Square) {
+add_valid_moves_south_east :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square) {
     col_idx := piece.position_on_board.y + 1
     for i := piece.position_on_board.x - 1; i >= 0; i -= 1 {
         if col_idx >= len(COLUMNS) {
@@ -378,7 +378,7 @@ add_valid_moves_south_east :: proc(board: ^Board, piece: ^Piece, moves: ^[dynami
 
         s := board.squares[i][col_idx]
 
-        should_break := append_move(board, piece, &s, moves)
+        should_break := append_move(board, piece, s, moves)
         if should_break {
             break
         }
@@ -388,7 +388,7 @@ add_valid_moves_south_east :: proc(board: ^Board, piece: ^Piece, moves: ^[dynami
 }
 
 @(private = "file")
-add_valid_moves_south_west :: proc(board: ^Board, piece: ^Piece, moves: ^[dynamic]Square) {
+add_valid_moves_south_west :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square) {
     col_idx := piece.position_on_board.y - 1
     for i := piece.position_on_board.x - 1; i >= 0; i -= 1 {
         if col_idx < 0 {
@@ -397,7 +397,7 @@ add_valid_moves_south_west :: proc(board: ^Board, piece: ^Piece, moves: ^[dynami
 
         s := board.squares[i][col_idx]
 
-        should_break := append_move(board, piece, &s, moves)
+        should_break := append_move(board, piece, s, moves)
         if should_break {
             break
         }
