@@ -4,7 +4,6 @@ import "core:fmt"
 import "core:strings"
 import rl "vendor:raylib"
 
-
 Player :: enum {
     WHITE,
     BLACK
@@ -19,14 +18,10 @@ Game :: struct {
     mode: Game_mode
 }
 
-@(private = "file")
-hovered_square_vec: [2]int
-
-@(private = "file")
-highlighted_squares: [dynamic]Square
-
-is_reset_pressed: bool
-selected_piece: ^Piece
+@(private = "file") hovered_square_vec: [2]int
+@(private = "file") highlighted_squares: [dynamic]Square
+@(private = "file") is_reset_pressed: bool
+@(private = "file") selected_piece: ^Piece
 
 main :: proc() {
     rl.InitWindow(1000, 800, "RayChess")
@@ -50,7 +45,6 @@ main :: proc() {
 
         draw(&board)
 
-        // note: draw a piece test
         for p in game.board.pieces {
             rl.DrawRectangleRec(p.rect, rl.Fade(rl.WHITE, 0))
             rl.DrawTexture(
@@ -86,13 +80,21 @@ update :: proc(game: ^Game) {
 
             if selected_piece != nil {
                 for &piece in pieces_on_board {
-                    if rl.CheckCollisionPointRec(mouse_pos, square.rect) && 
-                       piece.number == selected_piece.number && 
-                       !rl.CheckCollisionPointRec(mouse_pos, piece.rect)
-                    {
-                        if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
-                            square_to_move_to := game.board.squares[row_idx][square_idx]
-                            move_piece(game, &piece, &square_to_move_to)
+                    if rl.CheckCollisionPointRec(mouse_pos, piece.rect) && selected_piece == &piece {
+                        if rl.IsMouseButtonDown(rl.MouseButton.LEFT) {
+                            piece.rect.x = mouse_pos.x - (SQUARE_SIZE / 2)
+                            piece.rect.y = mouse_pos.y - (SQUARE_SIZE / 2)
+                        }
+                        if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) {
+                            square_to_move_to := game.board.squares[hovered_square_vec.x][hovered_square_vec.y]
+                            moved := move_piece(game, &piece, &square_to_move_to)
+                            if !moved {
+                                // snap back
+                                starting_pos := piece.position_on_board
+                                starting_square := game.board.squares[starting_pos.x][starting_pos.y]
+                                piece.rect = starting_square.rect
+                            }
+                            selected_piece = nil
                         }
                     }
                 }
@@ -100,15 +102,16 @@ update :: proc(game: ^Game) {
         }
     }
 
+    // highlight valid squares for the selected piece
     for &piece in pieces_on_board {
         if rl.CheckCollisionPointRec(mouse_pos, piece.rect) {
             if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
                 if selected_piece != nil && piece.number == selected_piece.number {
                     selected_piece = nil
-                    clear(&highlighted_squares)
+                    //clear(&highlighted_squares)
                 } else {
                     selected_piece = &piece
-                    highlighted_squares = valid_moves(game, &piece)
+                    //highlighted_squares = valid_moves(game, &piece)
                 }
             }
         }
@@ -138,7 +141,6 @@ draw_board :: proc(board: ^Board) {
                 rl.DrawRectangleRec(square.rect, rl.Fade(rl.GRAY, .5))
             }
 
-            // show valid moves
             for highlighted_square in highlighted_squares {
                 if highlighted_square.row == square.row && highlighted_square.col == square.col {
                     rl.DrawRectangleRec(square.rect, rl.Fade(rl.ORANGE, .5))
@@ -169,7 +171,20 @@ draw_current_active_square_coordinates :: proc(board: ^Board) {
     rl.DrawText(coord_cstring, 0 ,0 , 20, rl.BLACK)
 }
 
-@(private = "file")
-draw_pieces :: proc(board: ^Board) {
+click_and_move :: proc() {
+    // @todo: drag the piece
+    // click and move the piece
+    /*for &piece in pieces_on_board {
+                    if rl.CheckCollisionPointRec(mouse_pos, square.rect) && 
+                       piece.number == selected_piece.number && 
+                       !rl.CheckCollisionPointRec(mouse_pos, piece.rect)
+                    {
+                        if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
+                            square_to_move_to := game.board.squares[row_idx][square_idx]
+                            move_piece(game, &piece, &square_to_move_to)
+                        }
+                    }
+                }*/
+
 }
 

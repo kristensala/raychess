@@ -99,22 +99,29 @@ reset_game:: proc(game: ^Game) {
 }
 
 @(private)
-move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: ^Square) {
+move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: ^Square) -> bool {
     if !is_valid_move(game, piece_to_move, destination) {
-        return
+        return false;
     }
 
-    // @todo: is it a take?
-    // then remove the taken piece from board
+    // @note: detect a take
+    // @todo: test
+    has_piece, piece, piece_index := square_has_piece(&game.board, destination)
+    if has_piece && piece.player != piece_to_move.player {
+        fmt.println("removing piece from board: ", piece)
+
+        piece.position_on_board = {}
+        unordered_remove(&game.board.pieces, piece_index)
+    }
 
     piece_to_move.rect.x = destination.rect.x
     piece_to_move.rect.y = destination.rect.y
     piece_to_move.position_on_board = {destination.row, destination.col}
+    return true;
 }
 
 @(private)
 add_pieces :: proc(game: ^Game) {
-
     /* WHITE QUEEN */
     wq_texture := rl.LoadTexture("./assets/wq.png")
     wq_texture.height = SQUARE_SIZE
@@ -190,7 +197,6 @@ valid_moves :: proc(game: ^Game, piece: ^Piece) -> [dynamic]Square {
         add_valid_moves_north_west(&board, piece, &moves)
         add_valid_moves_south_east(&board, piece, &moves)
         add_valid_moves_south_west(&board, piece, &moves)
-
         return moves
     }
 
@@ -222,8 +228,13 @@ If true, it means that we detected a piece
 and if in a loop, we should break out
 */
 @(private = "file")
-append_move :: proc(board: ^Board, piece: ^Piece, square_to_add: ^Square, dest: ^[dynamic]Square) -> bool {
-    has_piece, found_piece := square_has_piece(board, square_to_add)
+append_move :: proc(
+    board: ^Board,
+    piece: ^Piece,
+    square_to_add: ^Square,
+    dest: ^[dynamic]Square
+) -> bool {
+    has_piece, found_piece, _ := square_has_piece(board, square_to_add)
     if has_piece {
         if piece.player != found_piece.player {
             append(dest, square_to_add^)
@@ -237,15 +248,22 @@ append_move :: proc(board: ^Board, piece: ^Piece, square_to_add: ^Square, dest: 
 }
 
 @(private = "file")
-square_has_piece :: proc(board: ^Board, square: ^Square) -> (bool, ^Piece) {
-    for &piece in board.pieces {
+square_has_piece :: proc(
+    board: ^Board,
+    square: ^Square
+) -> (
+    has_piece: bool,
+    found_piece: ^Piece,
+    found_piece_idx: int
+) {
+    for &piece, idx in board.pieces {
         piece_coords := piece.position_on_board
         if piece_coords.x == square.row && piece_coords.y == square.col {
-            return true, &piece
+            return true, &piece, idx
         }
     }
 
-    return false, nil
+    return false, nil, -1
 }
 
 @(private = "file")
