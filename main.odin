@@ -24,6 +24,8 @@ Game :: struct {
 @(private = "file") selected_piece: ^Piece
 @(private = "file") move_sound: rl.Sound
 
+@(private = "file") SHOW_VALID_SQUARES := true 
+
 main :: proc() {
     rl.InitWindow(1000, 800, "RayChess")
     rl.SetWindowMonitor(1)
@@ -75,6 +77,7 @@ main :: proc() {
 update :: proc(game: ^Game) {
     mouse_pos := rl.GetMousePosition()
     pieces_on_board := &game.board.pieces
+
     if (mouse_pos.x >= 810 ||
         mouse_pos.y < 0 ||
         mouse_pos.y >= 810 ||
@@ -84,6 +87,10 @@ update :: proc(game: ^Game) {
         starting_square := game.board.squares[starting_pos.x][starting_pos.y]
         selected_piece.rect = starting_square.rect
         selected_piece = nil
+
+        if SHOW_VALID_SQUARES {
+            clear(&highlighted_squares)
+        }
     }
 
     // highlight valid squares for the selected piece
@@ -91,12 +98,15 @@ update :: proc(game: ^Game) {
         if rl.CheckCollisionPointRec(mouse_pos, piece.rect) {
             if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
                 if selected_piece != nil && piece.number == selected_piece.number {
-                    fmt.println("seleted nil")
                     selected_piece = nil
-                    //clear(&highlighted_squares)
+                    if SHOW_VALID_SQUARES {
+                        clear(&highlighted_squares)
+                    }
                 } else {
                     selected_piece = &piece
-                    //highlighted_squares = valid_moves(game, &piece)
+                    if SHOW_VALID_SQUARES {
+                        highlighted_squares = valid_moves(game, &piece)
+                    }
                 }
             }
         }
@@ -132,6 +142,10 @@ update :: proc(game: ^Game) {
                                 piece.rect = starting_square.rect
                             }
                             selected_piece = nil
+
+                            if SHOW_VALID_SQUARES {
+                                clear(&highlighted_squares)
+                            }
                         }
                     }
                 }
