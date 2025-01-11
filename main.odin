@@ -45,7 +45,7 @@ main :: proc() {
     add_pieces(&game)
 
     for !rl.WindowShouldClose() {
-        update(&game)
+        update_init(&game)
 
         rl.BeginDrawing()
         rl.ClearBackground(rl.RAYWHITE)
@@ -64,7 +64,7 @@ main :: proc() {
 }
 
 @(private = "file")
-update :: proc(game: ^Game) {
+update_init :: proc(game: ^Game) {
     mouse_pos := rl.GetMousePosition()
     pieces_on_board := &game.board.pieces
 
@@ -125,7 +125,7 @@ update :: proc(game: ^Game) {
                             }
 
                             if !moved {
-                                // snap back
+                                // snap back to where the move started
                                 starting_pos := piece.position_on_board
                                 starting_square := game.board.squares[starting_pos.x][starting_pos.y]
                                 piece.rect = starting_square.rect
@@ -169,25 +169,24 @@ draw_init :: proc(game: Game) {
     */
     if selected_piece != nil && selected_piece.player == Player.BLACK {
         for piece in game.board.pieces {
-            rl.DrawRectangleRec(piece.rect, rl.Fade(rl.WHITE, 0))
-            rl.DrawTexture(
-                piece.texture,
-                i32(piece.rect.x),
-                i32(piece.rect.y),
-                rl.WHITE
-            )
+            draw_piece(piece)
         }
     } else {
         #reverse for piece in game.board.pieces {
-            rl.DrawRectangleRec(piece.rect, rl.Fade(rl.WHITE, 0))
-            rl.DrawTexture(
-                piece.texture,
-                i32(piece.rect.x),
-                i32(piece.rect.y),
-                rl.WHITE
-            )
+            draw_piece(piece)
         }
     }
+}
+
+@(private = "file")
+draw_piece :: proc(piece: Piece) {
+    rl.DrawRectangleRec(piece.rect, rl.Fade(rl.WHITE, 0))
+    rl.DrawTexture(
+        piece.texture,
+        i32(piece.rect.x),
+        i32(piece.rect.y),
+        rl.WHITE
+    )
 }
 
 @(private = "file")
