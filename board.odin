@@ -135,14 +135,17 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
 // or the other way around
 @(private)
 add_pieces :: proc(game: ^Game) {
+    //------------WHITE PIECES---------------
+
     /* WHITE QUEEN */
     wq_texture := rl.LoadTexture("./assets/wq.png")
     wq_texture.height = SQUARE_SIZE
     wq_texture.width = SQUARE_SIZE
 
+    wq_pos := [2]int{1, 1}
     wq_rect := rl.Rectangle{
-        x = game.board.squares[1][1].rect.x,
-        y = game.board.squares[1][1].rect.y,
+        x = game.board.squares[wq_pos.x][wq_pos.y].rect.x,
+        y = game.board.squares[wq_pos.x][wq_pos.y].rect.y,
         height = SQUARE_SIZE,
         width = SQUARE_SIZE
     }
@@ -155,18 +158,19 @@ add_pieces :: proc(game: ^Game) {
         player = Player.WHITE,
         type = Piece_Type.QUEEN,
         rect = wq_rect,
-        position_on_board = {1,1}
+        position_on_board = wq_pos
     }
     append(&game.board.pieces, wq_piece)
 
     /* WHITE ROOK 1 */
+    wr_pos := [2]int{0, 0}
     wr_texture := rl.LoadTexture("./assets/wr.png")
     wr_texture.height = SQUARE_SIZE
     wr_texture.width = SQUARE_SIZE
 
     wr_rect := rl.Rectangle{
-        x = game.board.squares[0][0].rect.x,
-        y = game.board.squares[0][0].rect.y,
+        x = game.board.squares[wr_pos.x][wr_pos.y].rect.x,
+        y = game.board.squares[wr_pos.x][wr_pos.y].rect.y,
         height = SQUARE_SIZE,
         width = SQUARE_SIZE
     }
@@ -177,14 +181,15 @@ add_pieces :: proc(game: ^Game) {
         player = Player.WHITE,
         type = Piece_Type.ROOK,
         rect = wr_rect,
-        position_on_board = {0,0}
+        position_on_board = wr_pos
     }
     append(&game.board.pieces, wr_piece)
 
     /* WHITE ROOK 2 */
+    wrr_pos := [2]int{0, 7}
     wrr_rect := rl.Rectangle{
-        x = game.board.squares[0][7].rect.x,
-        y = game.board.squares[0][7].rect.y,
+        x = game.board.squares[wrr_pos.x][wrr_pos.y].rect.x,
+        y = game.board.squares[wrr_pos.x][wrr_pos.y].rect.y,
         height = SQUARE_SIZE,
         width = SQUARE_SIZE
     }
@@ -195,18 +200,21 @@ add_pieces :: proc(game: ^Game) {
         player = Player.WHITE,
         type = Piece_Type.ROOK,
         rect = wrr_rect,
-        position_on_board = {0,7}
+        position_on_board = wrr_pos
     }
     append(&game.board.pieces, wrr_piece)
 
+    //------------BLACK PIECES---------------
+
     /* BLACK QUEEN */
+    bq_pos := [2]int{7, 4}
     bq_texture := rl.LoadTexture("./assets/bq.png")
     bq_texture.height = SQUARE_SIZE
     bq_texture.width = SQUARE_SIZE
 
     bq_rect := rl.Rectangle{
-        x = game.board.squares[7][4].rect.x,
-        y = game.board.squares[7][4].rect.y,
+        x = game.board.squares[bq_pos.x][bq_pos.y].rect.x,
+        y = game.board.squares[bq_pos.x][bq_pos.y].rect.y,
         height = SQUARE_SIZE,
         width = SQUARE_SIZE
     }
@@ -217,7 +225,7 @@ add_pieces :: proc(game: ^Game) {
         player = Player.BLACK,
         type = Piece_Type.QUEEN,
         rect = bq_rect,
-        position_on_board = {7,4}
+        position_on_board = bq_pos
     }
     append(&game.board.pieces, bq_piece)
 }
