@@ -110,14 +110,23 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
 
         piece.position_on_board = {}
 
+        // @note: need to snap into place before removing
+        // the old piece for some reason.
+        // Fixes the black piece not snapping
+        // into the square after take
+        piece_to_move.rect.x = destination.rect.x
+        piece_to_move.rect.y = destination.rect.y
+        piece_to_move.position_on_board = {destination.row, destination.col}
+
         // @note: order is important
         // whites and blacks need to be bunched up
         ordered_remove(&game.board.pieces, piece_index)
+    } else {
+        piece_to_move.rect.x = destination.rect.x
+        piece_to_move.rect.y = destination.rect.y
+        piece_to_move.position_on_board = {destination.row, destination.col}
     }
 
-    piece_to_move.rect.x = destination.rect.x
-    piece_to_move.rect.y = destination.rect.y
-    piece_to_move.position_on_board = {destination.row, destination.col}
     return true;
 }
 
