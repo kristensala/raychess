@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "core:strings"
+import "core:slice"
 import rl "vendor:raylib"
 
 Player :: enum {
@@ -15,14 +16,21 @@ Game_Mode :: enum {
 
 Game :: struct {
     board: Board,
-    mode: Game_Mode
+    mode: Game_Mode,
 }
 
 @(private = "file") hovered_square_vec: [2]int
 @(private = "file") highlighted_squares: [dynamic]Square
-@(private = "file") is_reset_pressed: bool
 @(private = "file") selected_piece: ^Piece
 @(private = "file") move_sound: rl.Sound
+
+// Buttons
+@(private = "file") is_reset_pressed: bool
+@(private = "file") is_next_move_pressed: bool
+@(private = "file") is_prev_move_pressed: bool
+
+@(private) current_move: int
+move_history: [dynamic][dynamic]Piece
 
 @(private = "file") SHOW_VALID_SQUARES := true 
 
@@ -40,9 +48,12 @@ main :: proc() {
     create_squares(&board)
 
     game := Game {
-        board = board
+        board = board,
     }
     add_pieces(&game)
+
+    t := slice.clone_to_dynamic(game.board.pieces[:])
+    append(&move_history, t)
 
     for !rl.WindowShouldClose() {
         update_init(&game)
@@ -122,6 +133,7 @@ update_init :: proc(game: ^Game) {
                             moved := move_piece(game, &piece, square_to_move_to)
                             if moved {
                                 rl.PlaySound(move_sound)
+                                current_move += 1
                             }
 
                             if !moved {
@@ -144,8 +156,30 @@ update_init :: proc(game: ^Game) {
 
     if is_reset_pressed {
         selected_piece = nil
+        current_move = 0
+        clear(&move_history)
         reset_game(game)
     }
+
+    // @fix: after moving in history then moving back 
+    /*if is_next_move_pressed {
+        if current_move < len(move_history) - 1 {
+            current_move += 1
+        }
+
+        fmt.println(current_move)
+        fmt.println(len(move_history))
+        game.board.pieces = move_history[current_move]
+    }
+
+    if is_prev_move_pressed {
+        if current_move > 0 {
+            current_move -= 1
+        }
+        fmt.println(current_move)
+        fmt.println(move_history)
+        game.board.pieces = move_history[current_move]
+    }*/
 }
 
 @(private = "file")
@@ -154,6 +188,8 @@ draw_init :: proc(game: Game) {
     draw_current_active_square_coordinates(game.board)
 
     is_reset_pressed = rl.GuiButton(rl.Rectangle{900, 10, 50, 20}, "Reset")
+    is_prev_move_pressed = rl.GuiButton(rl.Rectangle{850, 50, 50, 20}, "Prev")
+    is_next_move_pressed = rl.GuiButton(rl.Rectangle{910, 50, 50, 20}, "Next")
 
     /*
         The order we render pieces is important

@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "core:crypto"
+import "core:slice"
 import "core:encoding/uuid"
 import rl "vendor:raylib"
 
@@ -105,7 +106,7 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
     }
 
     has_piece, piece, piece_index := square_has_piece(game.board, destination)
-    if has_piece && piece.player != piece_to_move.player {
+    if has_piece && piece.player != piece_to_move.player && piece.type != .KING {
         fmt.println("removing piece from board: ", piece)
 
         piece.position_on_board = {}
@@ -127,6 +128,8 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
         piece_to_move.position_on_board = {destination.row, destination.col}
     }
 
+    //save_move(&game.board.pieces)
+
     return true;
 }
 
@@ -136,21 +139,43 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
 @(private)
 add_pieces :: proc(game: ^Game) {
     //------------WHITE PIECES---------------
+    context.random_generator = crypto.random_generator()
+
+    /* WHITE KING */
+    wk_texture := rl.LoadTexture("./assets/wk.png")
+    wk_texture.height = SQUARE_SIZE
+    wk_texture.width = SQUARE_SIZE
+
+    wk_pos := [2]int{0, 4}
+    wk_rect := rl.Rectangle{
+        x = game.board.squares[wk_pos.x][wk_pos.y].rect.x,
+        y = game.board.squares[wk_pos.x][wk_pos.y].rect.y,
+        height = SQUARE_SIZE,
+        width = SQUARE_SIZE
+    }
+
+    wk_piece := Piece{
+        number = uuid.generate_v7(),
+        texture = wk_texture,
+        player = Player.WHITE,
+        type = Piece_Type.KING,
+        rect = wk_rect,
+        position_on_board = wk_pos
+    }
+    append(&game.board.pieces, wk_piece)
 
     /* WHITE QUEEN */
     wq_texture := rl.LoadTexture("./assets/wq.png")
     wq_texture.height = SQUARE_SIZE
     wq_texture.width = SQUARE_SIZE
 
-    wq_pos := [2]int{1, 1}
+    wq_pos := [2]int{0, 3}
     wq_rect := rl.Rectangle{
         x = game.board.squares[wq_pos.x][wq_pos.y].rect.x,
         y = game.board.squares[wq_pos.x][wq_pos.y].rect.y,
         height = SQUARE_SIZE,
         width = SQUARE_SIZE
     }
-
-    context.random_generator = crypto.random_generator()
 
     wq_piece := Piece{
         number = uuid.generate_v7(),
@@ -295,7 +320,7 @@ append_move :: proc(
 ) -> bool {
     has_piece, found_piece, _ := square_has_piece(board, square_to_add)
     if has_piece {
-        if piece.player != found_piece.player {
+        if piece.player != found_piece.player && found_piece.type != .KING {
             append(dest, square_to_add)
         }
         return true
@@ -447,5 +472,10 @@ add_valid_moves_south_west :: proc(board: Board, piece: Piece, moves: ^[dynamic]
 
         col_idx -= 1
     }
+}
+
+save_move :: proc(pieces: ^[dynamic]Piece) {
+    t := slice.clone_to_dynamic(pieces[:])
+    append(&move_history, t)
 }
 
