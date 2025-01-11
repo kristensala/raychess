@@ -104,14 +104,15 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
         return false;
     }
 
-    // @note: detect a take
-    // @todo: test
     has_piece, piece, piece_index := square_has_piece(game.board, destination)
     if has_piece && piece.player != piece_to_move.player {
         fmt.println("removing piece from board: ", piece)
 
         piece.position_on_board = {}
-        unordered_remove(&game.board.pieces, piece_index)
+
+        // @note: order is important
+        // whites and blacks need to be bunched up
+        ordered_remove(&game.board.pieces, piece_index)
     }
 
     piece_to_move.rect.x = destination.rect.x
@@ -120,6 +121,9 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
     return true;
 }
 
+// @note: do not add pieces in a random order
+// first add ALL whites then ALL blacks
+// or the other way around
 @(private)
 add_pieces :: proc(game: ^Game) {
     /* WHITE QUEEN */
@@ -185,6 +189,28 @@ add_pieces :: proc(game: ^Game) {
         position_on_board = {0,7}
     }
     append(&game.board.pieces, wrr_piece)
+
+    /* BLACK QUEEN */
+    bq_texture := rl.LoadTexture("./assets/bq.png")
+    bq_texture.height = SQUARE_SIZE
+    bq_texture.width = SQUARE_SIZE
+
+    bq_rect := rl.Rectangle{
+        x = game.board.squares[7][4].rect.x,
+        y = game.board.squares[7][4].rect.y,
+        height = SQUARE_SIZE,
+        width = SQUARE_SIZE
+    }
+
+    bq_piece := Piece{
+        number = uuid.generate_v7(),
+        texture = bq_texture,
+        player = Player.BLACK,
+        type = Piece_Type.QUEEN,
+        rect = bq_rect,
+        position_on_board = {7,4}
+    }
+    append(&game.board.pieces, bq_piece)
 }
 
 is_valid_move :: proc(game: ^Game, piece: Piece, move_to: Square) -> bool {

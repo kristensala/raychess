@@ -50,17 +50,7 @@ main :: proc() {
         rl.BeginDrawing()
         rl.ClearBackground(rl.RAYWHITE)
 
-        draw(&board)
-
-        for p in game.board.pieces {
-            rl.DrawRectangleRec(p.rect, rl.Fade(rl.WHITE, 0))
-            rl.DrawTexture(
-                p.texture,
-                i32(p.rect.x),
-                i32(p.rect.y),
-                rl.WHITE
-            )
-        }
+        draw_init(game)
 
         rl.EndDrawing()
     }
@@ -159,15 +149,49 @@ update :: proc(game: ^Game) {
 }
 
 @(private = "file")
-draw :: proc(board: ^Board) {
-    draw_board(board)
-    draw_current_active_square_coordinates(board)
+draw_init :: proc(game: Game) {
+    draw_board(game.board)
+    draw_current_active_square_coordinates(game.board)
 
     is_reset_pressed = rl.GuiButton(rl.Rectangle{900, 10, 50, 20}, "Reset")
+
+    /*
+        The order we render pieces is important
+        because if white pieces are rendered first
+        then they always appear behing the black pieces when
+        making a 'taking' move.
+
+        So when current selected piece is black then we
+        draw white pieces first, If white then black
+        This also means that pieces can not be added to the list
+        in a random order: first add all white then all black
+        pieces. !IMPORTANT: do not mix and match them
+    */
+    if selected_piece != nil && selected_piece.player == Player.BLACK {
+        for piece in game.board.pieces {
+            rl.DrawRectangleRec(piece.rect, rl.Fade(rl.WHITE, 0))
+            rl.DrawTexture(
+                piece.texture,
+                i32(piece.rect.x),
+                i32(piece.rect.y),
+                rl.WHITE
+            )
+        }
+    } else {
+        #reverse for piece in game.board.pieces {
+            rl.DrawRectangleRec(piece.rect, rl.Fade(rl.WHITE, 0))
+            rl.DrawTexture(
+                piece.texture,
+                i32(piece.rect.x),
+                i32(piece.rect.y),
+                rl.WHITE
+            )
+        }
+    }
 }
 
 @(private = "file")
-draw_board :: proc(board: ^Board) {
+draw_board :: proc(board: Board) {
     for row, row_idx in board.squares {
         for square, square_idx in row {
             // @todo: draw coordinates on the board
@@ -187,7 +211,7 @@ draw_board :: proc(board: ^Board) {
 }
 
 @(private = "file")
-draw_current_active_square_coordinates :: proc(board: ^Board) {
+draw_current_active_square_coordinates :: proc(board: Board) {
     rows := ROWS
     columns := COLUMNS
 
