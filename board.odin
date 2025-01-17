@@ -128,7 +128,10 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
         piece_to_move.position_on_board = {destination.row, destination.col}
     }
 
-    //save_move(&game.board.pieces)
+    //save_move(game^.board.pieces)
+    save_move(game)
+    assert(piece_to_move.rect.x == destination.rect.x, "invalid x coord")
+    assert(piece_to_move.rect.y == destination.rect.y, "invalid y coord")
 
     return true;
 }
@@ -474,8 +477,8 @@ add_valid_moves_south_west :: proc(board: Board, piece: Piece, moves: ^[dynamic]
     }
 }
 
-save_move :: proc(pieces: ^[dynamic]Piece) {
-    t := slice.clone_to_dynamic(pieces[:])
-    append(&move_history, t)
+save_move :: proc(game: ^Game) {
+    pieces_clone := slice.clone_to_dynamic(game.board.pieces[:])
+    append(&game.board_history, pieces_clone)
 }
 

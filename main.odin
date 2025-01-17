@@ -10,13 +10,9 @@ Player :: enum {
     BLACK
 }
 
-Game_Mode :: enum {
-    FREE
-}
-
 Game :: struct {
     board: Board,
-    mode: Game_Mode,
+    board_history: [dynamic][dynamic]Piece
 }
 
 @(private = "file") hovered_square_vec: [2]int
@@ -30,8 +26,8 @@ Game :: struct {
 @(private = "file") is_prev_move_pressed: bool
 
 @(private) current_move: int
-move_history: [dynamic][dynamic]Piece
 
+// CONFIG
 @(private = "file") SHOW_VALID_SQUARES := true 
 
 main :: proc() {
@@ -52,8 +48,8 @@ main :: proc() {
     }
     add_pieces(&game)
 
-    t := slice.clone_to_dynamic(game.board.pieces[:])
-    append(&move_history, t)
+    board_pieces_clone := slice.clone_to_dynamic(game.board.pieces[:])
+    append(&game.board_history, board_pieces_clone)
 
     for !rl.WindowShouldClose() {
         update_init(&game)
@@ -95,6 +91,7 @@ update_init :: proc(game: ^Game) {
     }
 
     // highlight valid squares for the selected piece
+    // and set/deselect the selected_piece
     for &piece in pieces_on_board {
         if rl.CheckCollisionPointRec(mouse_pos, piece.rect) {
             if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
@@ -157,22 +154,30 @@ update_init :: proc(game: ^Game) {
     if is_reset_pressed {
         selected_piece = nil
         current_move = 0
-        clear(&move_history)
+        clear(&game.board_history)
         reset_game(game)
     }
 
     // @fix: after moving in history then moving back 
-    /*if is_next_move_pressed {
-        if current_move < len(move_history) - 1 {
+    if is_next_move_pressed {
+        fmt.println("--------start-------")
+        for state in game.board_history {
+            for piece in state {
+                fmt.println(piece.position_on_board, piece.type, piece.player)
+            }
+            fmt.println("---------------")
+        }
+        fmt.println("-------end--------")
+        /*if current_move < len(move_history) - 1 {
             current_move += 1
         }
 
         fmt.println(current_move)
         fmt.println(len(move_history))
-        game.board.pieces = move_history[current_move]
+        game.board.pieces = move_history[current_move]*/
     }
 
-    if is_prev_move_pressed {
+    /*if is_prev_move_pressed {
         if current_move > 0 {
             current_move -= 1
         }
@@ -263,23 +268,5 @@ draw_current_active_square_coordinates :: proc(board: Board) {
     defer delete(coord_cstring)
 
     rl.DrawText(coord_cstring, 0 ,0 , 20, rl.BLACK)
-}
-
-// @todo: remove later
-click_and_move :: proc() {
-    // @todo: drag the piece
-    // click and move the piece
-    /*for &piece in pieces_on_board {
-                    if rl.CheckCollisionPointRec(mouse_pos, square.rect) && 
-                       piece.number == selected_piece.number && 
-                       !rl.CheckCollisionPointRec(mouse_pos, piece.rect)
-                    {
-                        if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
-                            square_to_move_to := game.board.squares[row_idx][square_idx]
-                            move_piece(game, &piece, &square_to_move_to)
-                        }
-                    }
-                }*/
-
 }
 
