@@ -33,7 +33,10 @@ Piece_Type :: enum {
 Piece :: struct {
     number: uuid.Identifier,
     player: Player,
+    // pos while dragging the piece
     rect: rl.Rectangle,
+    // pos on the board
+    // can use this to know the starting pos when making the move
     position_on_board: [2]int, // {row, col}
     texture: rl.Texture2D,
     type: Piece_Type

@@ -30,6 +30,7 @@ Game :: struct {
 // CONFIG
 @(private = "file") SHOW_VALID_SQUARES := true 
 
+// @todo: check for memory leaks
 main :: proc() {
     rl.InitWindow(1000, 800, "RayChess")
     rl.SetWindowMonitor(1)
@@ -133,8 +134,9 @@ update_init :: proc(game: ^Game) {
                                 current_move += 1
                             }
 
+                            // hovered over a wrong square and could not make a move
+                            // so snap back to where the move started
                             if !moved {
-                                // snap back to where the move started
                                 starting_pos := piece.position_on_board
                                 starting_square := game.board.squares[starting_pos.x][starting_pos.y]
                                 piece.rect = starting_square.rect
@@ -158,7 +160,10 @@ update_init :: proc(game: ^Game) {
         reset_game(game)
     }
 
-    // @fix: after moving in history then moving back 
+    // @todo: what to do when observing past moves and then making
+    // a move while not in the latest state of the board
+    //
+    // #1 reset to latest state and do not allow the move
     if is_next_move_pressed {
         fmt.println("--------start-------")
         for state in game.board_history {
@@ -203,7 +208,7 @@ draw_init :: proc(game: Game) {
         making a 'taking' move.
 
         So when current selected piece is black then we
-        draw white pieces first, If white then black
+        draw white pieces first, If white then black first.
         This also means that pieces can not be added to the list
         in a random order: first add all white then all black
         pieces. !IMPORTANT: do not mix and match them
