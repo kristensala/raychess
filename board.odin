@@ -260,12 +260,26 @@ add_pieces :: proc(game: ^Game) {
     append(&game.board.pieces, bq_piece)
 }
 
-is_valid_move :: proc(game: ^Game, piece: Piece, move_to: Square) -> bool {
-    moves := valid_moves(game, piece)
+// note: Enemy king square is highlighted
+// as valid move square, to detect if it is 
+// under check, but do not allow it as an actual valid move
+is_valid_move :: proc(game: ^Game, piece_to_move: Piece, move_to: Square) -> bool {
+    // if move_to Square has enemy king on it return false
+    for piece in game.board.pieces {
+        if piece.type == .KING &&
+            piece.player != piece_to_move.player &&
+            piece.position_on_board.x == move_to.row &&
+            piece.position_on_board.y == move_to.col
+        {
+            return false;
+        }
+    }
+
+    moves := valid_moves(game, piece_to_move)
     defer delete(moves)
 
-    for move in moves {
-        if move.col == move_to.col && move.row == move_to.row {
+    for valid_move in moves {
+        if valid_move.col == move_to.col && valid_move.row == move_to.row {
             return true
         }
     }
@@ -277,7 +291,7 @@ valid_moves :: proc(game: ^Game, piece: Piece) -> [dynamic]Square {
     moves: [dynamic]Square
     board := game.board
 
-    if piece.type == .QUEEN || piece.type == .KING{
+    if piece.type == .QUEEN || piece.type == .KING {
         add_valid_moves_east(board, piece, &moves)
         add_valid_moves_west(board, piece, &moves)
         add_valid_moves_north(board, piece, &moves)
@@ -325,7 +339,7 @@ append_move :: proc(
 ) -> bool {
     has_piece, found_piece, _ := square_has_piece(board, square_to_add)
     if has_piece {
-        if piece.player != found_piece.player && found_piece.type != .KING {
+        if piece.player != found_piece.player {
             append(dest, square_to_add)
         }
         return true
