@@ -131,7 +131,6 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
         piece_to_move.position_on_board = {destination.row, destination.col}
     }
 
-    //save_move(game^.board.pieces)
     save_move(game)
     assert(piece_to_move.rect.x == destination.rect.x, "invalid x coord")
     assert(piece_to_move.rect.y == destination.rect.y, "invalid y coord")
@@ -278,7 +277,7 @@ valid_moves :: proc(game: ^Game, piece: Piece) -> [dynamic]Square {
     moves: [dynamic]Square
     board := game.board
 
-    if piece.type == .QUEEN {
+    if piece.type == .QUEEN || piece.type == .KING{
         add_valid_moves_east(board, piece, &moves)
         add_valid_moves_west(board, piece, &moves)
         add_valid_moves_north(board, piece, &moves)
@@ -362,7 +361,7 @@ add_valid_moves_north :: proc(board: Board, piece: Piece, moves: ^[dynamic]Squar
         s := board.squares[i][piece.position_on_board.y]
 
         should_break := append_move(board, piece, s, moves)
-        if should_break {
+        if should_break  || piece.type == .KING {
             break
         }
     }
@@ -374,7 +373,7 @@ add_valid_moves_south :: proc(board: Board, piece: Piece, moves: ^[dynamic]Squar
         s := board.squares[i][piece.position_on_board.y]
 
         should_break := append_move(board, piece, s, moves)
-        if should_break {
+        if should_break || piece.type == .KING {
             break
         }
     }
@@ -386,7 +385,7 @@ add_valid_moves_east :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square
         s := board.squares[piece.position_on_board.x][i]
 
         should_break := append_move(board, piece, s, moves)
-        if should_break {
+        if should_break  || piece.type == .KING {
             break
         }
     }
@@ -398,7 +397,7 @@ add_valid_moves_west :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square
         s := board.squares[piece.position_on_board.x][i]
 
         should_break := append_move(board, piece, s, moves)
-        if should_break {
+        if should_break  || piece.type == .KING {
             break
         }
     }
@@ -416,7 +415,7 @@ add_valid_moves_north_west :: proc(board: Board, piece: Piece, moves: ^[dynamic]
         s := board.squares[i][col_idx]
 
         should_break := append_move(board, piece, s, moves)
-        if should_break {
+        if should_break  || piece.type == .KING {
             break
         }
         col_idx -= 1
@@ -434,7 +433,7 @@ add_valid_moves_north_east :: proc(board: Board, piece: Piece, moves: ^[dynamic]
         s := board.squares[i][col_idx]
 
         should_break := append_move(board, piece, s, moves)
-        if should_break {
+        if should_break  || piece.type == .KING {
             break
         }
 
@@ -453,7 +452,7 @@ add_valid_moves_south_east :: proc(board: Board, piece: Piece, moves: ^[dynamic]
         s := board.squares[i][col_idx]
 
         should_break := append_move(board, piece, s, moves)
-        if should_break {
+        if should_break  || piece.type == .KING {
             break
         }
 
@@ -472,7 +471,7 @@ add_valid_moves_south_west :: proc(board: Board, piece: Piece, moves: ^[dynamic]
         s := board.squares[i][col_idx]
 
         should_break := append_move(board, piece, s, moves)
-        if should_break {
+        if should_break  || piece.type == .KING {
             break
         }
 
@@ -480,8 +479,12 @@ add_valid_moves_south_west :: proc(board: Board, piece: Piece, moves: ^[dynamic]
     }
 }
 
+@(private = "file")
 save_move :: proc(game: ^Game) {
     pieces_clone := slice.clone_to_dynamic(game.board.pieces[:])
     append(&game.board_history, pieces_clone)
+
+    // @todo: not sure if i have to do it
+    clear(&pieces_clone)
 }
 
