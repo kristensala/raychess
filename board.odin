@@ -1,6 +1,7 @@
 package main
 
 import "core:fmt"
+import "core:mem"
 import "core:crypto"
 import "core:slice"
 import "core:encoding/uuid"
@@ -52,6 +53,7 @@ create_squares :: proc(board: ^Board) {
     square_start_y := board.position.y
     square_color: rl.Color
 
+
     for i := 0; i < len(ROWS); i += 1  {
         row_array: [dynamic]Square
         for column, col_idx in COLUMNS {
@@ -93,13 +95,16 @@ create_squares :: proc(board: ^Board) {
         square_start_x = board.position.x
         square_start_y -= SQUARE_SIZE
     }
-
 }
 
 @(private)
 reset_game:: proc(game: ^Game) {
     clear(&game.board.pieces)
     add_pieces(game)
+
+    board_pieces_clone := slice.clone_to_dynamic(game.board.pieces[:])
+    defer delete(board_pieces_clone)
+    append(&game.board_history, board_pieces_clone)
 }
 
 @(private)
@@ -322,13 +327,16 @@ valid_moves :: proc(game: ^Game, piece: Piece) -> [dynamic]Square {
     return moves
 }
 
-@(private)
-take_piece :: proc() {
+// @todo: take this into consideration
+// when calculating valid moves
+@(private = "file")
+is_king_in_check :: proc(game: Game, player: Player) -> bool {
+    return false
 }
 
 /*
-If true, it means that we detected a piece
-and if in a loop, we should break out
+    If true, it means that we detected a piece
+    and if in a loop, we should break out
 */
 @(private = "file")
 append_move :: proc(
@@ -423,7 +431,7 @@ add_valid_moves_north_west :: proc(board: Board, piece: Piece, moves: ^[dynamic]
     col_idx := piece.position_on_board.y - 1
     for i := piece.position_on_board.x + 1; i < len(ROWS); i += 1 {
         if col_idx < 0 {
-            break
+            break;
         }
 
         s := board.squares[i][col_idx]
@@ -464,7 +472,6 @@ add_valid_moves_south_east :: proc(board: Board, piece: Piece, moves: ^[dynamic]
         }
 
         s := board.squares[i][col_idx]
-
         should_break := append_move(board, piece, s, moves)
         if should_break  || piece.type == .KING {
             break
@@ -493,12 +500,11 @@ add_valid_moves_south_west :: proc(board: Board, piece: Piece, moves: ^[dynamic]
     }
 }
 
+// @todo: do i have to delete pieces_clone
 @(private = "file")
-save_move :: proc(game: ^Game) {
-    pieces_clone := slice.clone_to_dynamic(game.board.pieces[:])
-    append(&game.board_history, pieces_clone)
-
-    // @todo: not sure if i have to do it
-    clear(&pieces_clone)
+save_move :: proc(game: ^Game) -> mem.Allocator_Error {
+    pieces_clone := slice.clone_to_dynamic(game.board.pieces[:]) or_return
+    append(&game.board_history, pieces_clone) or_return
+    return nil
 }
 

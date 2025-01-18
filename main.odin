@@ -1,6 +1,7 @@
 package main
 
 import "core:fmt"
+import "core:mem"
 import "core:strings"
 import "core:slice"
 import rl "vendor:raylib"
@@ -30,8 +31,27 @@ Game :: struct {
 // CONFIG
 @(private = "file") SHOW_VALID_SQUARES := true 
 
-// @todo: check for memory leaks
 main :: proc() {
+    when ODIN_DEBUG {
+        track: mem.Tracking_Allocator
+        mem.tracking_allocator_init(&track, context.allocator)
+        context.allocator = mem.tracking_allocator(&track)
+
+        defer {
+            if len(track.allocation_map) > 0 {
+                for _, entry in track.allocation_map {
+                    fmt.eprintf("%v leaked %v bytes\n", entry.location, entry.size)
+                }
+            }
+            if len(track.bad_free_array) > 0 {
+                for entry in track.bad_free_array {
+                    fmt.eprintf("%v bad free at %v\n", entry.location, entry.memory)
+                }
+            }
+            mem.tracking_allocator_destroy(&track)
+        }
+    }
+
     rl.InitWindow(1000, 800, "RayChess")
     rl.SetWindowMonitor(1)
 
@@ -50,6 +70,7 @@ main :: proc() {
     add_pieces(&game)
 
     board_pieces_clone := slice.clone_to_dynamic(game.board.pieces[:])
+    defer delete(board_pieces_clone)
     append(&game.board_history, board_pieces_clone)
 
     for !rl.WindowShouldClose() {
@@ -156,6 +177,7 @@ update_init :: proc(game: ^Game) {
     if is_reset_pressed {
         selected_piece = nil
         current_move = 0
+
         clear(&game.board_history)
         reset_game(game)
     }
