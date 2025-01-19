@@ -187,6 +187,7 @@ update_init :: proc(game: ^Game) {
     // #1 reset to latest state and do not allow the move
     if is_next_move_pressed {
         fmt.println("--------start-------")
+        fmt.println(game.board.piece_registry.white_king_pos)
         for state in game.board_history {
             for piece in state {
                 fmt.println(piece.position_on_board, piece.type, piece.player)

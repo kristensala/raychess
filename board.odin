@@ -106,6 +106,8 @@ create_squares :: proc(board: ^Board) {
 
 @(private)
 reset_game:: proc(game: ^Game) {
+    delete_dynamic_array(game.board.pieces^)
+
     clear(&game.board.piece_registry.white_pieces)
     clear(&game.board.piece_registry.black_pieces)
     add_pieces(game)
@@ -142,6 +144,14 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
         piece_to_move.rect.x = destination.rect.x
         piece_to_move.rect.y = destination.rect.y
         piece_to_move.position_on_board = {destination.row, destination.col}
+    }
+
+    if piece_to_move.type == .KING && piece_to_move.player == .WHITE {
+        game.board.piece_registry.white_king_pos = piece_to_move.position_on_board
+    }
+
+    if piece_to_move.type == .KING && piece_to_move.player == .BLACK {
+        game.board.piece_registry.black_king_pos = piece_to_move.position_on_board
     }
 
     save_move(game)
@@ -181,6 +191,7 @@ add_pieces :: proc(game: ^Game) {
         rect = wk_rect,
         position_on_board = wk_pos
     }
+    game.board.piece_registry.white_king_pos = wk_pos
     append(&game.board.piece_registry.white_pieces, wk_piece)
 
     /* WHITE QUEEN */
