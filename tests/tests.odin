@@ -78,6 +78,31 @@ test_king_valid_moves :: proc(t: ^testing.T) {
 
     game.board.pieces = pieces
     valid_moves_for_white_king := main.valid_moves(game, white_king, nil)
+    defer delete(valid_moves_for_white_king)
+
+    valid_expected_squares := [3][2]int{
+        {0, 4},
+        {1, 4},
+        {1, 5}
+    }
+
+    found: bool 
+    for move in valid_moves_for_white_king {
+        found = false
+        for expected_move in valid_expected_squares {
+            if move.row == expected_move.x && move.col == expected_move.y {
+                found = true
+                break
+            }
+        }
+
+        testing.expectf(t,
+            found == true,
+            "Found an invalid Square; row: %i col: %i", move.row, move.col
+        )
+
+    }
+
 
     testing.expect(t,
         len(valid_moves_for_white_king) == 3,
