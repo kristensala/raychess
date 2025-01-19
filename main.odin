@@ -125,7 +125,7 @@ update_init :: proc(game: ^Game) {
                 } else {
                     selected_piece = &piece
                     if SHOW_VALID_SQUARES {
-                        highlighted_squares = valid_moves(game, piece)
+                        highlighted_squares = valid_moves(game, piece, false)
                     }
                 }
             }

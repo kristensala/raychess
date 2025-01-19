@@ -12,7 +12,9 @@ Board :: struct {
     height: int,
     width: int,
     squares: [dynamic][dynamic]Square,
-    pieces: [dynamic]Piece
+    pieces: [dynamic]Piece,
+    white_king_pos: [2]int,
+    black_king_pos: [2]int
 }
 
 Square :: struct {
@@ -136,10 +138,11 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
         piece_to_move.position_on_board = {destination.row, destination.col}
     }
 
-    save_move(game)
-    assert(piece_to_move.rect.x == destination.rect.x, "invalid x coord")
-    assert(piece_to_move.rect.y == destination.rect.y, "invalid y coord")
+    if piece_to_move.type == .KING && piece_to_move.player == .WHITE {
+        game.board.white_king_pos = piece_to_move.position_on_board
+    }
 
+    save_move(game)
     return true;
 }
 
@@ -172,6 +175,7 @@ add_pieces :: proc(game: ^Game) {
         rect = wk_rect,
         position_on_board = wk_pos
     }
+    game.board.white_king_pos = wk_pos
     append(&game.board.pieces, wk_piece)
 
     /* WHITE QUEEN */
@@ -269,6 +273,9 @@ add_pieces :: proc(game: ^Game) {
 // as valid move square, to detect if it is 
 // under check, but do not allow it as an actual valid move
 is_valid_move :: proc(game: ^Game, piece_to_move: Piece, move_to: Square) -> bool {
+    king_in_check, from_piece := is_king_in_check(game, piece_to_move.player)
+    //defer free(from_piece) // not sure about that
+
     // if move_to Square has enemy king on it return false
     for piece in game.board.pieces {
         if piece.type == .KING &&
@@ -280,7 +287,7 @@ is_valid_move :: proc(game: ^Game, piece_to_move: Piece, move_to: Square) -> boo
         }
     }
 
-    moves := valid_moves(game, piece_to_move)
+    moves := valid_moves(game, piece_to_move, king_in_check)
     defer delete(moves)
 
     for valid_move in moves {
@@ -292,7 +299,8 @@ is_valid_move :: proc(game: ^Game, piece_to_move: Piece, move_to: Square) -> boo
     return false
 }
 
-valid_moves :: proc(game: ^Game, piece: Piece) -> [dynamic]Square {
+// @todo: if king is in check
+valid_moves :: proc(game: ^Game, piece: Piece, is_check: bool) -> [dynamic]Square {
     moves: [dynamic]Square
     board := game.board
 
@@ -327,11 +335,32 @@ valid_moves :: proc(game: ^Game, piece: Piece) -> [dynamic]Square {
     return moves
 }
 
-// @todo: take this into consideration
-// when calculating valid moves
+// @todo:
+// take this into consideration
+// when calculating valid moves.
+//
+// I should also return the piece which gives the check
+// then I can use its pos and the kings pos
+// to calculate squares to block the check or maybe take the piece
 @(private = "file")
-is_king_in_check :: proc(game: Game, player: Player) -> bool {
-    return false
+@require_results
+is_king_in_check :: proc(game: ^Game, player: Player) -> (bool, ^Piece) {
+    for &piece in game.board.pieces {
+        // check over opponents pieces
+        if piece.player == player {
+            continue
+        }
+
+        // check if white king is in check by current only black piece
+        piece_valid_moves := valid_moves(game, piece, false)
+        for valid_move in piece_valid_moves {
+            if valid_move.row == game.board.white_king_pos.x && valid_move.col == game.board.white_king_pos.y {
+                fmt.println("king is in check")
+                return true, &piece
+            }
+        }
+    }
+    return false, nil
 }
 
 /*
