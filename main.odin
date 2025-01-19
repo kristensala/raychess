@@ -59,15 +59,8 @@ main :: proc() {
     move_sound = rl.LoadSound("./assets/move-self.mp3")
     rl.SetTargetFPS(60)
 
-    board := Board {
-        position = {0, 700},
-    }
-    create_squares(&board)
-
-    game := Game {
-        board = board,
-    }
-    add_pieces(&game)
+    game := Game{}
+    init_board(&game)
 
     board_pieces_clone := slice.clone_to_dynamic(game.board.pieces[:])
     defer delete(board_pieces_clone)

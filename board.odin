@@ -49,7 +49,16 @@ COLUMNS :: [8]string{"a", "b", "c", "d", "e", "f", "g", "h"}
 ROWS :: [8]string{"1", "2", "3", "4", "5", "6", "7", "8"}
 SQUARE_SIZE :: 100
 
-@(private)
+init_board :: proc(game: ^Game) {
+    board := Board {
+        position = {0, 700},
+    }
+    create_squares(&board)
+
+    game.board = board
+    add_pieces(game)
+}
+
 create_squares :: proc(board: ^Board) {
     square_start_x := board.position.x
     square_start_y := board.position.y
@@ -89,7 +98,6 @@ create_squares :: proc(board: ^Board) {
 
             square_start_x += SQUARE_SIZE
             append(&row_array, square)
-
         }
         append(&board.squares, row_array)
         clear(&row_array)
@@ -149,7 +157,6 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
 // @note: do not add pieces in a random order
 // first add ALL whites then ALL blacks
 // or the other way around
-@(private)
 add_pieces :: proc(game: ^Game) {
     //------------WHITE PIECES---------------
     context.random_generator = crypto.random_generator()
@@ -343,7 +350,6 @@ valid_moves :: proc(game: ^Game, piece: Piece, check_from: ^Piece = nil) -> [dyn
 // I should also return the piece which gives the check
 // then I can use its pos and the kings pos
 // to calculate squares to block the check or maybe take the piece
-@(private = "file")
 @require_results
 is_king_in_check :: proc(game: ^Game, player: Player) -> (bool, ^Piece) {
     for &piece in game.board.pieces {
@@ -409,7 +415,9 @@ square_has_piece :: proc(
 
 // @todo: return only valid squares to protect from check
 // then see which pieces can be put those squares
-valid_squares_when_king_in_check :: proc() {
+// do not include king here - I think
+@(private)
+valid_squares_when_king_in_check :: proc(game: Game) {
 }
 
 @(private = "file")
