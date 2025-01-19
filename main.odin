@@ -95,7 +95,6 @@ main :: proc() {
 @(private = "file")
 update_init :: proc(game: ^Game) {
     mouse_pos := rl.GetMousePosition()
-    pieces_on_board := &game.board.pieces
 
     if (mouse_pos.x >= 810 ||
         mouse_pos.y < 0 ||
@@ -114,7 +113,7 @@ update_init :: proc(game: ^Game) {
 
     // highlight valid squares for the selected piece
     // and set/deselect the selected_piece
-    for &piece in pieces_on_board {
+    for &piece in game.board.pieces {
         if rl.CheckCollisionPointRec(mouse_pos, piece.rect) {
             if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
                 if selected_piece != nil && piece.number == selected_piece.number {
@@ -141,7 +140,7 @@ update_init :: proc(game: ^Game) {
             }
 
             if selected_piece != nil {
-                for &piece in pieces_on_board {
+                for &piece in game.board.pieces {
                     if rl.CheckCollisionPointRec(mouse_pos, square.rect) && selected_piece == &piece {
                         if rl.IsMouseButtonDown(rl.MouseButton.LEFT) {
                             piece.rect.x = mouse_pos.x - 50
