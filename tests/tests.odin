@@ -3,8 +3,6 @@ package tests
 import "core:testing"
 import "core:fmt"
 
-@require import "vendor:raylib"
-
 import main "../"
 
 @(test)
@@ -39,9 +37,10 @@ test_is_king_in_check :: proc(t: ^testing.T) {
     game.board.pieces = pieces
 
     is_check, from_piece := main.is_king_in_check(game, main.Player.WHITE)
+
     testing.expect(t,
         is_check == true && from_piece.type == main.Piece_Type.QUEEN,
-        "King should be under check by BLACK Queen"
+        "White King should be under check by BLACK Queen"
     )
 }
 
