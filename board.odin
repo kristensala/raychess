@@ -12,15 +12,7 @@ Board :: struct {
     height: int,
     width: int,
     squares: [dynamic][dynamic]Square,
-    pieces: ^[dynamic]Piece,
-    piece_registry: Piece_Registry
-}
-
-Piece_Registry :: struct {
-    white_pieces: [dynamic]Piece,
-    black_pieces: [dynamic]Piece,
-    white_king_pos: [2]int,
-    black_king_pos: [2]int
+    pieces: [dynamic]Piece
 }
 
 Square :: struct {
@@ -60,6 +52,7 @@ create_squares :: proc(board: ^Board) {
     square_start_x := board.position.x
     square_start_y := board.position.y
     square_color: rl.Color
+
 
     for i := 0; i < len(ROWS); i += 1  {
         row_array: [dynamic]Square
@@ -106,10 +99,7 @@ create_squares :: proc(board: ^Board) {
 
 @(private)
 reset_game:: proc(game: ^Game) {
-    delete_dynamic_array(game.board.pieces^)
-
-    clear(&game.board.piece_registry.white_pieces)
-    clear(&game.board.piece_registry.black_pieces)
+    clear(&game.board.pieces)
     add_pieces(game)
 
     board_pieces_clone := slice.clone_to_dynamic(game.board.pieces[:])
@@ -139,19 +129,11 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
 
         // @note: order is important
         // whites and blacks need to be bunched up
-        ordered_remove(game.board.pieces, piece_index)
+        ordered_remove(&game.board.pieces, piece_index)
     } else {
         piece_to_move.rect.x = destination.rect.x
         piece_to_move.rect.y = destination.rect.y
         piece_to_move.position_on_board = {destination.row, destination.col}
-    }
-
-    if piece_to_move.type == .KING && piece_to_move.player == .WHITE {
-        game.board.piece_registry.white_king_pos = piece_to_move.position_on_board
-    }
-
-    if piece_to_move.type == .KING && piece_to_move.player == .BLACK {
-        game.board.piece_registry.black_king_pos = piece_to_move.position_on_board
     }
 
     save_move(game)
@@ -168,7 +150,6 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
 add_pieces :: proc(game: ^Game) {
     //------------WHITE PIECES---------------
     context.random_generator = crypto.random_generator()
-    game.board.pieces = new([dynamic]Piece)
 
     /* WHITE KING */
     wk_texture := rl.LoadTexture("./assets/wk.png")
@@ -191,8 +172,7 @@ add_pieces :: proc(game: ^Game) {
         rect = wk_rect,
         position_on_board = wk_pos
     }
-    game.board.piece_registry.white_king_pos = wk_pos
-    append(&game.board.piece_registry.white_pieces, wk_piece)
+    append(&game.board.pieces, wk_piece)
 
     /* WHITE QUEEN */
     wq_texture := rl.LoadTexture("./assets/wq.png")
@@ -215,7 +195,7 @@ add_pieces :: proc(game: ^Game) {
         rect = wq_rect,
         position_on_board = wq_pos
     }
-    append(&game.board.piece_registry.white_pieces, wq_piece)
+    append(&game.board.pieces, wq_piece)
 
     /* WHITE ROOK 1 */
     wr_pos := [2]int{0, 0}
@@ -238,7 +218,7 @@ add_pieces :: proc(game: ^Game) {
         rect = wr_rect,
         position_on_board = wr_pos
     }
-    append(&game.board.piece_registry.white_pieces, wr_piece)
+    append(&game.board.pieces, wr_piece)
 
     /* WHITE ROOK 2 */
     wrr_pos := [2]int{0, 7}
@@ -257,7 +237,7 @@ add_pieces :: proc(game: ^Game) {
         rect = wrr_rect,
         position_on_board = wrr_pos
     }
-    append(&game.board.piece_registry.white_pieces, wrr_piece)
+    append(&game.board.pieces, wrr_piece)
 
     //------------BLACK PIECES---------------
 
@@ -282,10 +262,7 @@ add_pieces :: proc(game: ^Game) {
         rect = bq_rect,
         position_on_board = bq_pos
     }
-    append(&game.board.piece_registry.black_pieces, bq_piece)
-
-    append(game.board.pieces, ..game.board.piece_registry.white_pieces[:])
-    append(game.board.pieces, ..game.board.piece_registry.black_pieces[:])
+    append(&game.board.pieces, bq_piece)
 }
 
 // note: Enemy king square is highlighted

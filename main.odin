@@ -95,6 +95,7 @@ main :: proc() {
 @(private = "file")
 update_init :: proc(game: ^Game) {
     mouse_pos := rl.GetMousePosition()
+    pieces_on_board := &game.board.pieces
 
     if (mouse_pos.x >= 810 ||
         mouse_pos.y < 0 ||
@@ -113,7 +114,7 @@ update_init :: proc(game: ^Game) {
 
     // highlight valid squares for the selected piece
     // and set/deselect the selected_piece
-    for &piece in game.board.pieces {
+    for &piece in pieces_on_board {
         if rl.CheckCollisionPointRec(mouse_pos, piece.rect) {
             if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
                 if selected_piece != nil && piece.number == selected_piece.number {
@@ -140,7 +141,7 @@ update_init :: proc(game: ^Game) {
             }
 
             if selected_piece != nil {
-                for &piece in game.board.pieces {
+                for &piece in pieces_on_board {
                     if rl.CheckCollisionPointRec(mouse_pos, square.rect) && selected_piece == &piece {
                         if rl.IsMouseButtonDown(rl.MouseButton.LEFT) {
                             piece.rect.x = mouse_pos.x - 50
@@ -187,7 +188,6 @@ update_init :: proc(game: ^Game) {
     // #1 reset to latest state and do not allow the move
     if is_next_move_pressed {
         fmt.println("--------start-------")
-        fmt.println(game.board.piece_registry.white_king_pos)
         for state in game.board_history {
             for piece in state {
                 fmt.println(piece.position_on_board, piece.type, piece.player)
