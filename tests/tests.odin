@@ -77,7 +77,7 @@ test_king_valid_moves :: proc(t: ^testing.T) {
     )
 
     game.board.pieces = pieces
-    valid_moves_for_white_king := main.valid_moves(game, white_king, nil)
+    valid_moves_for_white_king := main.valid_moves(game, white_king, true)
     defer delete(valid_moves_for_white_king)
 
     valid_expected_squares := [3][2]int{
@@ -102,7 +102,6 @@ test_king_valid_moves :: proc(t: ^testing.T) {
         )
 
     }
-
 
     testing.expect(t,
         len(valid_moves_for_white_king) == 3,

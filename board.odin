@@ -129,10 +129,6 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
 
         piece.position_on_board = {}
 
-        // @note: need to snap into place before removing
-        // the old piece for some reason.
-        // Fixes the black piece not snapping
-        // into the square after take
         piece_to_move.rect.x = destination.rect.x
         piece_to_move.rect.y = destination.rect.y
         piece_to_move.position_on_board = {destination.row, destination.col}
@@ -294,7 +290,7 @@ is_valid_move :: proc(game: ^Game, piece_to_move: Piece, move_to: Square) -> boo
         }
     }
 
-    moves := valid_moves(game, piece_to_move, from_piece)
+    moves := valid_moves(game, piece_to_move)
     defer delete(moves)
 
     for valid_move in moves {
@@ -308,35 +304,73 @@ is_valid_move :: proc(game: ^Game, piece_to_move: Piece, move_to: Square) -> boo
 
 // @todo: if king is in check
 // and add param where the check is from
-valid_moves :: proc(game: ^Game, piece: Piece, check_from: ^Piece = nil) -> [dynamic]Square {
+// @note: if ignore king pos is true then
+// valid moves are calculated across the full board
+// to see which squares are covered by opponent pieces
+// and this allows me to calculate correct moves for the king
+valid_moves :: proc(
+    game: ^Game,
+    piece: Piece,
+    ignore_king_pos: bool = false
+) -> [dynamic]Square {
     moves: [dynamic]Square
-    board := game.board
+    if piece.type == .KING {
+        add_valid_moves_east(game, piece, &moves)
+        add_valid_moves_west(game, piece, &moves)
+        add_valid_moves_north(game, piece, &moves)
+        add_valid_moves_south(game, piece, &moves)
+        add_valid_moves_north_east(game, piece, &moves)
+        add_valid_moves_north_west(game, piece, &moves)
+        add_valid_moves_south_east(game, piece, &moves)
+        add_valid_moves_south_west(game, piece, &moves)
 
-    if piece.type == .QUEEN || piece.type == .KING {
-        add_valid_moves_east(board, piece, &moves)
-        add_valid_moves_west(board, piece, &moves)
-        add_valid_moves_north(board, piece, &moves)
-        add_valid_moves_south(board, piece, &moves)
-        add_valid_moves_north_east(board, piece, &moves)
-        add_valid_moves_north_west(board, piece, &moves)
-        add_valid_moves_south_east(board, piece, &moves)
-        add_valid_moves_south_west(board, piece, &moves)
+        // Calculate valid moves for the king by taking
+        // into consideration which scuares are covered by opponent pieces
+        // mock a king move
+        // and then see if it is still in check
+        // if so, then not a valid move
+        game_clone := new_clone(game^)
+        defer free(game_clone)
+
+        valid_king_moves: [dynamic]Square
+        for move in moves {
+            game_clone.board.white_king_pos = {move.row, move.col}
+
+            ok, from := is_king_in_check(game_clone, piece.player, true)
+            if !ok {
+                append(&valid_king_moves, move)
+            }
+        }
+
+        return valid_king_moves
+    }
+
+    if piece.type == .QUEEN {
+        add_valid_moves_east(game, piece, &moves, ignore_king_pos)
+        add_valid_moves_west(game, piece, &moves, ignore_king_pos)
+        add_valid_moves_north(game, piece, &moves, ignore_king_pos)
+        add_valid_moves_south(game, piece, &moves, ignore_king_pos)
+        add_valid_moves_north_east(game, piece, &moves, ignore_king_pos)
+        add_valid_moves_north_west(game, piece, &moves, ignore_king_pos)
+        add_valid_moves_south_east(game, piece, &moves, ignore_king_pos)
+        add_valid_moves_south_west(game, piece, &moves, ignore_king_pos)
+
         return moves
     }
 
     if piece.type == .ROOK {
-        add_valid_moves_east(board, piece, &moves)
-        add_valid_moves_west(board, piece, &moves)
-        add_valid_moves_north(board, piece, &moves)
-        add_valid_moves_south(board, piece, &moves)
+        add_valid_moves_east(game, piece, &moves)
+        add_valid_moves_west(game, piece, &moves)
+        add_valid_moves_north(game, piece, &moves)
+        add_valid_moves_south(game, piece, &moves)
         return moves
     }
 
     if piece.type == .BISHOP {
-        add_valid_moves_north_east(board, piece, &moves)
-        add_valid_moves_north_west(board, piece, &moves)
-        add_valid_moves_south_east(board, piece, &moves)
-        add_valid_moves_south_west(board, piece, &moves)
+        add_valid_moves_north_east(game, piece, &moves)
+        add_valid_moves_north_west(game, piece, &moves)
+        add_valid_moves_south_east(game, piece, &moves)
+        add_valid_moves_south_west(game, piece, &moves)
         return moves
     }
 
@@ -351,7 +385,7 @@ valid_moves :: proc(game: ^Game, piece: Piece, check_from: ^Piece = nil) -> [dyn
 // then I can use its pos and the kings pos
 // to calculate squares to block the check or maybe take the piece
 @require_results
-is_king_in_check :: proc(game: ^Game, player: Player) -> (bool, ^Piece) {
+is_king_in_check :: proc(game: ^Game, player: Player, ignore_king_pos: bool = false) -> (bool, ^Piece) {
     for &piece in game.board.pieces {
         // check over opponents pieces
         if piece.player == player {
@@ -359,10 +393,9 @@ is_king_in_check :: proc(game: ^Game, player: Player) -> (bool, ^Piece) {
         }
 
         // check if white king is in check by current only black piece
-        piece_valid_moves := valid_moves(game, piece, nil)
+        piece_valid_moves := valid_moves(game, piece, ignore_king_pos)
         for valid_move in piece_valid_moves {
             if valid_move.row == game.board.white_king_pos.x && valid_move.col == game.board.white_king_pos.y {
-                fmt.println("king is in check")
                 return true, &piece
             }
         }
@@ -376,21 +409,24 @@ is_king_in_check :: proc(game: ^Game, player: Player) -> (bool, ^Piece) {
 */
 @(private = "file")
 append_move :: proc(
-    board: Board,
+    game: ^Game,
     piece: Piece,
     square_to_add: Square,
-    dest: ^[dynamic]Square
+    dest: ^[dynamic]Square,
+    ignore_opponent_king_pos: bool = false
 ) -> bool {
-    has_piece, found_piece, _ := square_has_piece(board, square_to_add)
+    has_piece, found_piece, _ := square_has_piece(game.board, square_to_add)
     if has_piece {
         if piece.player != found_piece.player {
             append(dest, square_to_add)
         }
+        if found_piece.type == .KING && ignore_opponent_king_pos {
+            return false
+        }
         return true
-    } else {
-        append(dest, square_to_add)
     }
 
+    append(dest, square_to_add)
     return false
 }
 
@@ -413,19 +449,17 @@ square_has_piece :: proc(
     return false, nil, -1
 }
 
-// @todo: return only valid squares to protect from check
-// then see which pieces can be put those squares
-// do not include king here - I think
-@(private)
-valid_squares_when_king_in_check :: proc(game: Game) {
-}
-
 @(private = "file")
-add_valid_moves_north :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square) {
+add_valid_moves_north :: proc(
+    game: ^Game,
+    piece: Piece,
+    moves: ^[dynamic]Square,
+    ignore_king: bool = false
+) {
     for i := piece.position_on_board.x + 1; i < len(ROWS); i += 1 {
-        s := board.squares[i][piece.position_on_board.y]
+        s := game.board.squares[i][piece.position_on_board.y]
 
-        should_break := append_move(board, piece, s, moves)
+        should_break := append_move(game, piece, s, moves, ignore_king)
         if should_break  || piece.type == .KING {
             break
         }
@@ -433,11 +467,16 @@ add_valid_moves_north :: proc(board: Board, piece: Piece, moves: ^[dynamic]Squar
 }
 
 @(private = "file")
-add_valid_moves_south :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square) {
+add_valid_moves_south :: proc(
+    game: ^Game,
+    piece: Piece,
+    moves: ^[dynamic]Square,
+    ignore_king: bool = false
+) {
     for i := piece.position_on_board.x - 1; i >= 0; i -= 1 {
-        s := board.squares[i][piece.position_on_board.y]
+        s := game.board.squares[i][piece.position_on_board.y]
 
-        should_break := append_move(board, piece, s, moves)
+        should_break := append_move(game, piece, s, moves, ignore_king)
         if should_break || piece.type == .KING {
             break
         }
@@ -445,11 +484,16 @@ add_valid_moves_south :: proc(board: Board, piece: Piece, moves: ^[dynamic]Squar
 }
 
 @(private = "file")
-add_valid_moves_east :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square) {
+add_valid_moves_east :: proc(
+    game: ^Game,
+    piece: Piece,
+    moves: ^[dynamic]Square,
+    ignore_king: bool = false
+) {
     for i := piece.position_on_board.y + 1; i < len(COLUMNS); i += 1 {
-        s := board.squares[piece.position_on_board.x][i]
+        s := game.board.squares[piece.position_on_board.x][i]
 
-        should_break := append_move(board, piece, s, moves)
+        should_break := append_move(game, piece, s, moves, ignore_king)
         if should_break  || piece.type == .KING {
             break
         }
@@ -457,29 +501,38 @@ add_valid_moves_east :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square
 }
 
 @(private = "file")
-add_valid_moves_west :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square) {
+add_valid_moves_west :: proc(
+    game: ^Game,
+    piece: Piece, 
+    moves: ^[dynamic]Square, 
+    ignore_king: bool = false
+) {
     for i := piece.position_on_board.y - 1; i >= 0; i -= 1 {
-        s := board.squares[piece.position_on_board.x][i]
+        s := game.board.squares[piece.position_on_board.x][i]
 
-        should_break := append_move(board, piece, s, moves)
+        should_break := append_move(game, piece, s, moves, ignore_king)
         if should_break  || piece.type == .KING {
             break
         }
     }
 }
 
-
 @(private = "file")
-add_valid_moves_north_west :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square) {
+add_valid_moves_north_west :: proc(
+    game: ^Game,
+    piece: Piece,
+    moves: ^[dynamic]Square,
+    ignore_king: bool = false
+) {
     col_idx := piece.position_on_board.y - 1
     for i := piece.position_on_board.x + 1; i < len(ROWS); i += 1 {
         if col_idx < 0 {
             break;
         }
 
-        s := board.squares[i][col_idx]
+        s := game.board.squares[i][col_idx]
 
-        should_break := append_move(board, piece, s, moves)
+        should_break := append_move(game, piece, s, moves, ignore_king)
         if should_break  || piece.type == .KING {
             break
         }
@@ -488,16 +541,21 @@ add_valid_moves_north_west :: proc(board: Board, piece: Piece, moves: ^[dynamic]
 }
 
 @(private = "file")
-add_valid_moves_north_east :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square) {
+add_valid_moves_north_east :: proc(
+    game: ^Game,
+    piece: Piece,
+    moves: ^[dynamic]Square,
+    ignore_king: bool = false
+) {
     col_idx := piece.position_on_board.y + 1
     for i := piece.position_on_board.x + 1; i < len(ROWS); i += 1 {
         if col_idx >= len(COLUMNS) {
             break
         }
 
-        s := board.squares[i][col_idx]
+        s := game.board.squares[i][col_idx]
 
-        should_break := append_move(board, piece, s, moves)
+        should_break := append_move(game, piece, s, moves, ignore_king)
         if should_break  || piece.type == .KING {
             break
         }
@@ -507,15 +565,20 @@ add_valid_moves_north_east :: proc(board: Board, piece: Piece, moves: ^[dynamic]
 }
 
 @(private = "file")
-add_valid_moves_south_east :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square) {
+add_valid_moves_south_east :: proc(
+    game: ^Game,
+    piece: Piece,
+    moves: ^[dynamic]Square,
+    ignore_king: bool = false
+) {
     col_idx := piece.position_on_board.y + 1
     for i := piece.position_on_board.x - 1; i >= 0; i -= 1 {
         if col_idx >= len(COLUMNS) {
             break
         }
 
-        s := board.squares[i][col_idx]
-        should_break := append_move(board, piece, s, moves)
+        s := game.board.squares[i][col_idx]
+        should_break := append_move(game, piece, s, moves, ignore_king)
         if should_break  || piece.type == .KING {
             break
         }
@@ -525,16 +588,21 @@ add_valid_moves_south_east :: proc(board: Board, piece: Piece, moves: ^[dynamic]
 }
 
 @(private = "file")
-add_valid_moves_south_west :: proc(board: Board, piece: Piece, moves: ^[dynamic]Square) {
+add_valid_moves_south_west :: proc(
+    game: ^Game,
+    piece: Piece,
+    moves: ^[dynamic]Square,
+    ignore_king: bool = false
+) {
     col_idx := piece.position_on_board.y - 1
     for i := piece.position_on_board.x - 1; i >= 0; i -= 1 {
         if col_idx < 0 {
             break
         }
 
-        s := board.squares[i][col_idx]
+        s := game.board.squares[i][col_idx]
 
-        should_break := append_move(board, piece, s, moves)
+        should_break := append_move(game, piece, s, moves, ignore_king)
         if should_break  || piece.type == .KING {
             break
         }
@@ -543,7 +611,6 @@ add_valid_moves_south_west :: proc(board: Board, piece: Piece, moves: ^[dynamic]
     }
 }
 
-// @todo: do i have to delete pieces_clone
 @(private = "file")
 save_move :: proc(game: ^Game) -> mem.Allocator_Error {
     pieces_clone := slice.clone_to_dynamic(game.board.pieces[:]) or_return
