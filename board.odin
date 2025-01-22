@@ -143,8 +143,14 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
         piece_to_move.position_on_board = {destination.row, destination.col}
     }
 
-    if piece_to_move.type == .KING && piece_to_move.player == .WHITE {
-        game.board.white_king_pos = piece_to_move.position_on_board
+    if piece_to_move.type == .KING {
+        if piece_to_move.player == .WHITE {
+            game.board.white_king_pos = piece_to_move.position_on_board
+        }
+
+        if piece_to_move.player == .BLACK {
+            game.board.black_king_pos = piece_to_move.position_on_board
+        }
     }
 
     save_move(game)
@@ -249,8 +255,33 @@ add_pieces :: proc(game: ^Game) {
 
     //------------BLACK PIECES---------------
 
+    // BLACK KING
+    bk_pos := [2]int{7, 4}
+    bk_texture := rl.LoadTexture("./assets/bk.png")
+    bk_texture.height = SQUARE_SIZE
+    bk_texture.width = SQUARE_SIZE
+
+    bk_rect := rl.Rectangle{
+        x = game.board.squares[bk_pos.x][bk_pos.y].rect.x,
+        y = game.board.squares[bk_pos.x][bk_pos.y].rect.y,
+        height = SQUARE_SIZE,
+        width = SQUARE_SIZE
+    }
+
+    bk_piece := Piece{
+        number = uuid.generate_v7(),
+        texture = bk_texture,
+        player = Player.BLACK,
+        type = Piece_Type.KING,
+        rect = bk_rect,
+        position_on_board = bk_pos
+    }
+    game.board.black_king_pos = bk_pos
+    append(&game.board.pieces, bk_piece)
+
+
     /* BLACK QUEEN */
-    bq_pos := [2]int{7, 4}
+    bq_pos := [2]int{7, 3}
     bq_texture := rl.LoadTexture("./assets/bq.png")
     bq_texture.height = SQUARE_SIZE
     bq_texture.width = SQUARE_SIZE
@@ -277,9 +308,6 @@ add_pieces :: proc(game: ^Game) {
 // as valid move square, to detect if it is 
 // under check, but do not allow it as an actual valid move
 is_valid_move :: proc(game: ^Game, piece_to_move: Piece, move_to: Square) -> bool {
-    king_in_check, from_piece := is_king_in_check(game, piece_to_move.player)
-    //defer free(from_piece) // not sure about that
-
     // if move_to Square has enemy king on it return false
     for piece in game.board.pieces {
         if piece.type == .KING &&
@@ -331,23 +359,29 @@ valid_moves :: proc(
         // mock a king move
         // and then see if it is still in check
         // if so, then not a valid move
+        if ignore_king {
+            return moves
+        }
+
         game_clone := new_clone(game^)
         defer free(game_clone)
 
         valid_king_moves: [dynamic]Square
-        for move in moves {
+        for square in moves {
+            if piece.player == .BLACK {
+                game_clone.board.black_king_pos = {square.row, square.col}
+            }
+
             if piece.player == .WHITE {
-                game_clone.board.white_king_pos = {move.row, move.col}
-            } else {
-                game_clone.board.black_king_pos = {move.row, move.col}
+                game_clone.board.white_king_pos = {square.row, square.col}
             }
 
-            ok, from := is_king_in_check(game_clone, piece.player, true)
+            ok := will_king_be_in_check(game_clone, piece.player)
             if !ok {
-                append(&valid_king_moves, move)
+                append(&valid_king_moves, square)
             }
-        }
 
+        }
         return valid_king_moves
     }
 
@@ -390,6 +424,8 @@ valid_moves :: proc(
 // I should also return the piece which gives the check
 // then I can use its pos and the kings pos
 // to calculate squares to block the check or maybe take the piece
+
+// this shit is broken
 @require_results
 is_king_in_check :: proc(game: ^Game, player: Player, ignore_king: bool = false) -> (bool, ^Piece) {
     for &piece in game.board.pieces {
@@ -400,6 +436,8 @@ is_king_in_check :: proc(game: ^Game, player: Player, ignore_king: bool = false)
 
         // check if white king is in check by current only black piece
         piece_valid_moves := valid_moves(game, piece, ignore_king)
+        defer delete(piece_valid_moves)
+
         for valid_move in piece_valid_moves {
             if valid_move.row == game.board.white_king_pos.x && valid_move.col == game.board.white_king_pos.y {
                 return true, &piece
@@ -407,6 +445,34 @@ is_king_in_check :: proc(game: ^Game, player: Player, ignore_king: bool = false)
         }
     }
     return false, nil
+}
+
+will_king_be_in_check :: proc(game_clone: ^Game, player_moving: Player) -> bool {
+    for &piece in game_clone.board.pieces {
+        // skip player own pieces
+        if piece.player == player_moving {
+            continue;
+        }
+
+        valid_moves := valid_moves(game_clone, piece, true)
+        defer delete(valid_moves)
+
+        for valid_move in valid_moves {
+            if player_moving == .WHITE {
+                if valid_move.row == game_clone.board.white_king_pos.x && valid_move.col == game_clone.board.white_king_pos.y {
+                    return true
+                }
+            }
+
+            if player_moving == .BLACK {
+                if valid_move.row == game_clone.board.black_king_pos.x && valid_move.col == game_clone.board.black_king_pos.y {
+                    return true
+                }
+            }
+        }
+    }
+
+    return false;
 }
 
 /*
