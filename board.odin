@@ -119,7 +119,7 @@ reset_game:: proc(game: ^Game) {
 @(private)
 move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> bool {
     if !is_valid_move(game, piece_to_move^, destination) {
-        return false;
+        return false
     }
 
     has_piece, piece, piece_index := square_has_piece(game.board, destination)
@@ -153,7 +153,7 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
     }
 
     save_move(game)
-    return true;
+    return true
 }
 
 // @note: do not add pieces in a random order
@@ -314,7 +314,7 @@ is_valid_move :: proc(game: ^Game, piece_to_move: Piece, move_to: Square) -> boo
             piece.position_on_board.x == move_to.row &&
             piece.position_on_board.y == move_to.col
         {
-            return false;
+            return false
         }
     }
 
@@ -454,7 +454,7 @@ will_king_be_in_check :: proc(game_clone: ^Game, player_moving: Player) -> bool 
     for &piece in game_clone.board.pieces {
         // skip player own pieces
         if piece.player == player_moving {
-            continue;
+            continue
         }
 
         valid_moves := valid_moves(game_clone, piece, true)
@@ -475,7 +475,7 @@ will_king_be_in_check :: proc(game_clone: ^Game, player_moving: Player) -> bool 
         }
     }
 
-    return false;
+    return false
 }
 
 /*
@@ -496,7 +496,7 @@ append_move :: proc(
             append(dest, square_to_add)
         }
         if found_piece.type == .KING && ignore_king {
-            return false;
+            return false
         }
         return true
     }
