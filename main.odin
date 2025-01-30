@@ -7,6 +7,7 @@ import "core:slice"
 import rl "vendor:raylib"
 
 Player :: enum {
+    NONE,
     WHITE,
     BLACK
 }

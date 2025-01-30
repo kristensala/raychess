@@ -64,7 +64,6 @@ create_squares :: proc(board: ^Board) {
     square_start_y := board.position.y
     square_color: rl.Color
 
-
     for i := 0; i < len(ROWS); i += 1  {
         row_array: [dynamic]Square
         for column, col_idx in COLUMNS {
@@ -193,7 +192,7 @@ add_pieces :: proc(game: ^Game) {
     wq_texture.height = SQUARE_SIZE
     wq_texture.width = SQUARE_SIZE
 
-    wq_pos := [2]int{0, 3}
+    wq_pos := [2]int{2, 3}
     wq_rect := rl.Rectangle{
         x = game.board.squares[wq_pos.x][wq_pos.y].rect.x,
         y = game.board.squares[wq_pos.x][wq_pos.y].rect.y,
@@ -359,6 +358,9 @@ valid_moves :: proc(
         // mock a king move
         // and then see if it is still in check
         // if so, then not a valid move
+
+        // when calculating moves for the king
+        // here ignore opponents king
         if ignore_king {
             return moves
         }
@@ -376,6 +378,7 @@ valid_moves :: proc(
                 game_clone.board.white_king_pos = {square.row, square.col}
             }
 
+            // @bug: pieces do not block the check from opponent piece
             ok := will_king_be_in_check(game_clone, piece.player)
             if !ok {
                 append(&valid_king_moves, square)
@@ -492,8 +495,8 @@ append_move :: proc(
         if piece.player != found_piece.player {
             append(dest, square_to_add)
         }
-        if ignore_king {
-            return false
+        if found_piece.type == .KING && ignore_king {
+            return false;
         }
         return true
     }
@@ -532,7 +535,7 @@ add_valid_moves_north :: proc(
         s := game.board.squares[i][piece.position_on_board.y]
 
         should_break := append_move(game, piece, s, moves, ignore_king)
-        if should_break  || piece.type == .KING {
+        if should_break || piece.type == .KING {
             break
         }
     }
@@ -566,7 +569,7 @@ add_valid_moves_east :: proc(
         s := game.board.squares[piece.position_on_board.x][i]
 
         should_break := append_move(game, piece, s, moves, ignore_king)
-        if should_break  || piece.type == .KING {
+        if should_break || piece.type == .KING {
             break
         }
     }
