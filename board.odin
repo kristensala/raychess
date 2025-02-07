@@ -42,7 +42,9 @@ Piece :: struct {
     // can use this to know the starting pos when making the move
     position_on_board: [2]int, // {row, col}
     texture: rl.Texture2D,
-    type: Piece_Type
+    type: Piece_Type,
+    //calculated_valid_moves: [dynamic]Square // @todo: so I would not have to calculate multiple times??
+    // and every time a move is made, clear this for EVERY piece on the board
 }
 
 COLUMNS :: [8]string{"a", "b", "c", "d", "e", "f", "g", "h"}
@@ -340,7 +342,7 @@ is_valid_move :: proc(game: ^Game, piece_to_move: Piece, move_to: Square) -> boo
 valid_moves :: proc(
     game: ^Game,
     piece: Piece,
-    ignore_king: bool = false
+    ignore_king: bool = false,
 ) -> [dynamic]Square {
     moves: [dynamic]Square
     if piece.type == .KING {
@@ -365,8 +367,8 @@ valid_moves :: proc(
             return moves
         }
 
-        game_clone := new_clone(game^)
-        defer free(game_clone)
+        game_clone := game^
+        defer free(&game_clone)
 
         valid_king_moves: [dynamic]Square
         for square in moves {
@@ -378,9 +380,8 @@ valid_moves :: proc(
                 game_clone.board.white_king_pos = {square.row, square.col}
             }
 
-            // @bug: pieces do not block the check from opponent piece
-            ok := will_king_be_in_check(game_clone, piece.player)
-            if !ok {
+            is_king_in_check := will_king_be_in_check(&game_clone, piece.player)
+            if !is_king_in_check {
                 append(&valid_king_moves, square)
             }
 
@@ -398,6 +399,7 @@ valid_moves :: proc(
         add_valid_moves_south_east(game, piece, &moves, ignore_king)
         add_valid_moves_south_west(game, piece, &moves, ignore_king)
 
+        // @todo: is queen pinned?
         return moves
     }
 
@@ -450,7 +452,10 @@ is_king_in_check :: proc(game: ^Game, player: Player, ignore_king: bool = false)
     return false, nil
 }
 
-will_king_be_in_check :: proc(game_clone: ^Game, player_moving: Player) -> bool {
+will_king_be_in_check :: proc(
+    game_clone: ^Game,
+    player_moving: Player,
+) -> bool {
     for &piece in game_clone.board.pieces {
         // skip player own pieces
         if piece.player == player_moving {
@@ -482,20 +487,25 @@ will_king_be_in_check :: proc(game_clone: ^Game, player_moving: Player) -> bool 
     If true, it means that we detected a piece
     and if in a loop, we should break out
 */
+
 @(private = "file")
 append_move :: proc(
     game: ^Game,
     piece: Piece,
     square_to_add: Square,
     dest: ^[dynamic]Square,
-    ignore_king: bool = false
+    ignore_king: bool = false,
 ) -> bool {
     has_piece, found_piece, _ := square_has_piece(game.board, square_to_add)
+    // @todo: check if piece is pinned to the KING
     if has_piece {
+        // found enemy piece
         if piece.player != found_piece.player {
             append(dest, square_to_add)
         }
-        if found_piece.type == .KING && ignore_king {
+
+        // magic
+        if found_piece.type == .KING && ignore_king && piece.player != found_piece.player {
             return false
         }
         return true
@@ -563,7 +573,7 @@ add_valid_moves_east :: proc(
     game: ^Game,
     piece: Piece,
     moves: ^[dynamic]Square,
-    ignore_king: bool = false
+    ignore_king: bool = false,
 ) {
     for i := piece.position_on_board.y + 1; i < len(COLUMNS); i += 1 {
         s := game.board.squares[piece.position_on_board.x][i]
