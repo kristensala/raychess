@@ -6,16 +6,6 @@ import "core:strings"
 import "core:slice"
 import rl "vendor:raylib"
 
-Player :: enum {
-    NONE,
-    WHITE,
-    BLACK
-}
-
-Game :: struct {
-    board: Board,
-    board_history: [dynamic][dynamic]Piece
-}
 
 @(private = "file") hovered_square_vec: [2]int
 @(private = "file") highlighted_squares: [dynamic]Square
@@ -63,9 +53,9 @@ main :: proc() {
     game := Game{}
     init_board(&game)
 
-    board_pieces_clone := slice.clone_to_dynamic(game.board.pieces[:])
+    /*board_pieces_clone := slice.clone_to_dynamic(game.board.pieces[:])
     defer delete(board_pieces_clone)
-    append(&game.board_history, board_pieces_clone)
+    append(&game.board_history, board_pieces_clone)*/
 
     for !rl.WindowShouldClose() {
         update_init(&game)
@@ -78,8 +68,10 @@ main :: proc() {
         rl.EndDrawing()
     }
 
-    for piece in game.board.pieces {
-        rl.UnloadTexture(piece.texture)
+    for player_key, player_pieces in game.board.pieces_map {
+        for piece_key, piece in player_pieces {
+            rl.UnloadTexture(piece.texture)
+        }
     }
 
     rl.UnloadSound(move_sound)
@@ -89,7 +81,7 @@ main :: proc() {
 @(private = "file")
 update_init :: proc(game: ^Game) {
     mouse_pos := rl.GetMousePosition()
-    pieces_on_board := &game.board.pieces
+    pieces_on_board := &game.board.pieces_map
 
     if (mouse_pos.x >= 810 ||
         mouse_pos.y < 0 ||
@@ -108,18 +100,20 @@ update_init :: proc(game: ^Game) {
 
     // highlight valid squares for the selected piece
     // and set/deselect the selected_piece
-    for &piece in pieces_on_board {
-        if rl.CheckCollisionPointRec(mouse_pos, piece.rect) {
-            if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
-                if selected_piece != nil && piece.number == selected_piece.number {
-                    selected_piece = nil
-                    if SHOW_VALID_SQUARES {
-                        clear(&highlighted_squares)
-                    }
-                } else {
-                    selected_piece = &piece
-                    if SHOW_VALID_SQUARES {
-                        highlighted_squares = valid_moves(game, piece)
+    for player_key, player_pieces in pieces_on_board {
+        for piece_key, &piece in player_pieces {
+            if rl.CheckCollisionPointRec(mouse_pos, piece.rect) {
+                if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
+                    if selected_piece != nil && piece.type == selected_piece.type && piece.player == selected_piece.player {
+                        selected_piece = nil
+                        if SHOW_VALID_SQUARES {
+                            clear(&highlighted_squares)
+                        }
+                    } else {
+                        selected_piece = &piece
+                        if SHOW_VALID_SQUARES {
+                            highlighted_squares = valid_moves(game, &piece)
+                        }
                     }
                 }
             }
@@ -135,31 +129,33 @@ update_init :: proc(game: ^Game) {
             }
 
             if selected_piece != nil {
-                for &piece in pieces_on_board {
-                    if rl.CheckCollisionPointRec(mouse_pos, square.rect) && selected_piece == &piece {
-                        if rl.IsMouseButtonDown(rl.MouseButton.LEFT) {
-                            piece.rect.x = mouse_pos.x - 50
-                            piece.rect.y = mouse_pos.y - 50
-                        }
-                        if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) {
-                            square_to_move_to := game.board.squares[hovered_square_vec.x][hovered_square_vec.y]
-                            moved := move_piece(game, &piece, square_to_move_to)
-                            if moved {
-                                rl.PlaySound(move_sound)
-                                current_move += 1
+                for player_key, player_pieces in pieces_on_board {
+                    for piece_key, &piece in player_pieces {
+                        if rl.CheckCollisionPointRec(mouse_pos, square.rect) && selected_piece == &piece {
+                            if rl.IsMouseButtonDown(rl.MouseButton.LEFT) {
+                                piece.rect.x = mouse_pos.x - 50
+                                piece.rect.y = mouse_pos.y - 50
                             }
+                            if rl.IsMouseButtonReleased(rl.MouseButton.LEFT) {
+                                square_to_move_to := game.board.squares[hovered_square_vec.x][hovered_square_vec.y]
+                                moved := move_piece(game, &piece, square_to_move_to)
+                                if moved {
+                                    rl.PlaySound(move_sound)
+                                    current_move += 1
+                                }
 
-                            // hovered over a wrong square and could not make a move
-                            // so snap back to where the move started
-                            if !moved {
-                                starting_pos := piece.position_on_board
-                                starting_square := game.board.squares[starting_pos.x][starting_pos.y]
-                                piece.rect = starting_square.rect
-                            }
-                            selected_piece = nil
+                                // hovered over a wrong square and could not make a move
+                                // so snap back to where the move started
+                                if !moved {
+                                    starting_pos := piece.position_on_board
+                                    starting_square := game.board.squares[starting_pos.x][starting_pos.y]
+                                    piece.rect = starting_square.rect
+                                }
+                                selected_piece = nil
 
-                            if SHOW_VALID_SQUARES {
-                                clear(&highlighted_squares)
+                                if SHOW_VALID_SQUARES {
+                                    clear(&highlighted_squares)
+                                }
                             }
                         }
                     }
@@ -230,11 +226,17 @@ draw_init :: proc(game: Game) {
         pieces. !IMPORTANT: do not mix and match them
     */
     if selected_piece != nil && selected_piece.player == Player.BLACK {
-        for piece in game.board.pieces {
+        for _, piece in game.board.pieces_map[.WHITE] {
+            draw_piece(piece)
+        }
+        for _, piece in game.board.pieces_map[.BLACK] {
             draw_piece(piece)
         }
     } else {
-        #reverse for piece in game.board.pieces {
+        for _, piece in game.board.pieces_map[.BLACK] {
+            draw_piece(piece)
+        }
+        for _, piece in game.board.pieces_map[.WHITE] {
             draw_piece(piece)
         }
     }
