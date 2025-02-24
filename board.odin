@@ -23,7 +23,6 @@ Game :: struct {
     turn: Player
 }
 
-// @new
 Piece_Key :: enum {
     QUEEN,
     KING,
@@ -188,6 +187,7 @@ move_piece :: proc(game: ^Game, piece_to_move: ^Piece, destination: Square) -> b
     }
 
     has_piece, piece_key, piece_player := square_has_piece(game.board, destination)
+
     if has_piece && piece_player != piece_to_move.player && piece_key != .KING {
         piece := game.board.pieces_map[piece_player][piece_key]
         piece.position_on_board = {}
@@ -237,6 +237,7 @@ add_pieces :: proc(game: ^Game) {
     /* White */
     create_piece(&white_pieces, game^, "./assets/wk.png", {0, 4}, .WHITE, Piece_Key.KING)
     create_piece(&white_pieces, game^, "./assets/wq.png", {0, 3}, .WHITE, Piece_Key.QUEEN)
+    create_piece(&white_pieces, game^, "./assets/wr.png", {0, 0}, .WHITE, Piece_Key.A_ROOK)
     game.board.pieces_map[.WHITE] = white_pieces
 
     /* Black */
@@ -253,7 +254,7 @@ add_pieces :: proc(game: ^Game) {
 is_valid_move :: proc(game: ^Game, piece_to_move: ^Piece, move_to: Square) -> bool {
     for player, player_pieces in game.board.pieces_map {
         for piece_key, player_piece in player_pieces {
-            if piece_key == .KING &&
+            if (piece_key == .KING || player == piece_to_move.player) &&
                player_piece.position_on_board.x == move_to.row &&
                player_piece.position_on_board.y == move_to.col
             {
@@ -418,9 +419,7 @@ append_move :: proc(
 ) -> bool {
     has_piece, found_piece_key, player := square_has_piece(game.board, square_to_add)
     if has_piece {
-        if piece.player != player {
-            append(dest, square_to_add)
-        }
+        append(dest, square_to_add)
 
         // look past the king to see if the row/col/diagonal is off limits for the king
         if found_piece_key == .KING && ignore_king && piece.player != player {
